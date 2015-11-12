@@ -13,8 +13,15 @@ cp = adbapi.ConnectionPool("sqlite3", "trongame.db", check_same_thread = False)
 def createDatabase():
     cp.runQuery("create table if not exists accounts (id integer, name text)")
     cp.runQuery(
-        "create table if not exists games (id integer primary key autoincrement, "
-        + "name text, owner text, ping integer)"
+        """
+        create table if not exists games (
+            id integer primary key autoincrement,
+            name text unique,
+            owner text,
+            ping integer,
+            token text
+        )
+        """
     )
 
 class InsertAccount(Resource):
