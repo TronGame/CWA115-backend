@@ -63,6 +63,7 @@ root = Resource()
 root.putChild("insertAccount", InsertAccount())
 root.putChild("showAccount", ShowAccount())
 root.putChild("insertGame", Lobby.InsertGame(cp))
+root.putChild("deleteGame", Lobby.RemoveGame(cp))
 root.putChild("listGames", Lobby.ListGames(cp))
 
 factory = Site(root)

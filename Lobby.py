@@ -27,13 +27,46 @@ class InsertGame(Resource):
             owner = request.args["owner"][0]
             token = self.makeRandomToken(int(request.args.get("tokenLength", [25])[0]))
             result = self.cp.runQuery(
-                "insert or ignore into games (name, owner, ping) values (?, ?, 0)",
-                (name, owner)
+                "insert or ignore into games (name, owner, ping, token) values (?, ?, 0, ?)",
+                (name, owner, token)
             )
             result.addCallback(self.gameInserted, request, token)
             return NOT_DONE_YET 
         except KeyError:
             return json.dumps({"error" : "not all arguments set"})
+
+class RemoveGame(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def gameRemoved(self, result, request, token):
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            token = request.args["token"][0]
+        except KeyError:
+            return json.dumps({"error" : "no token given"})
+
+        if "name" in request.args:
+            name = request.args["name"][0]
+            result = self.cp.runQuery(
+                "delete from games where name = ? and token = ?", (name, token)
+            )
+            result.addCallback(self.gameRemoved, request, token)
+            return NOT_DONE_YET 
+        elif "id" in request.args: 
+            identifier = request.args["id"][0]
+            result = self.cp.runQuery(
+                "delete from games where id = ? and token = ?", (identifier, token)
+            )
+            result.addCallback(self.gameRemoved, request, token)
+            return NOT_DONE_YET
+        else:
+            return json.dumps({"error" : "id or name required"})
 
 class ListGames(Resource):
 
@@ -53,4 +86,3 @@ class ListGames(Resource):
         result = self.cp.runQuery("select id, name, owner, ping from games")
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
-
