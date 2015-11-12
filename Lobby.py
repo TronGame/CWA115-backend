@@ -80,8 +80,8 @@ class ListGames(Resource):
             "id"         : row[0],
             "name"       : row[1],
             "owner"      : row[2],
-            "ping"       : row[3],
-            "maxPlayers" : row[4]
+            "ping"       : int(row[3]),
+            "maxPlayers" : int(row[4])
         } for row in result]))
         request.finish()
 
