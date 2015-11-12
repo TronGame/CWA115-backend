@@ -6,10 +6,16 @@ from twisted.internet import reactor
 
 from twisted.enterprise import adbapi
 
+import Lobby
+
 cp = adbapi.ConnectionPool("sqlite3", "trongame.db", check_same_thread = False)
 
 def createDatabase():
     cp.runQuery("create table if not exists accounts (id integer, name text)")
+    cp.runQuery(
+        "create table if not exists games (id integer primary key autoincrement, "
+        + "name text, owner text, ping integer)"
+    )
 
 class InsertAccount(Resource):
     def accountInserted(self, result, request):
@@ -49,6 +55,9 @@ class ShowAccount(Resource):
 root = Resource()
 root.putChild("insertAccount", InsertAccount())
 root.putChild("showAccount", ShowAccount())
+root.putChild("insertGame", Lobby.InsertGame(cp))
+root.putChild("listGames", Lobby.ListGames(cp))
+
 factory = Site(root)
 reactor.listenTCP(8880, factory)
 
