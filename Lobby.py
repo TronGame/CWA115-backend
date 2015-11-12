@@ -1,4 +1,4 @@
-import sys, json, random, string
+import sys, json, random, Utility
 from twisted.web.server import Site
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
@@ -13,9 +13,6 @@ class InsertGame(Resource):
         self.cp = cp
         self.rbg = random.SystemRandom()
 
-    def makeRandomToken(self, length):
-        return "".join([self.rbg.choice(string.hexdigits) for i in xrange(length)])
-
     def gameInserted(self, result, request, token):
         request.write(json.dumps({"result" : result, "token" : token}))
         request.finish()
@@ -24,11 +21,15 @@ class InsertGame(Resource):
         request.defaultContentType = "application/json"
         try:
             name = request.args["name"][0]
-            owner = request.args["owner"][0]
-            token = self.makeRandomToken(int(request.args.get("tokenLength", [25])[0]))
+            owner = int(request.args["owner"][0])
+            maxPlayers = int(request.args["maxPlayers"][0])
+            token = makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
             result = self.cp.runQuery(
-                "insert or ignore into games (name, owner, ping, token) values (?, ?, 0, ?)",
-                (name, owner, token)
+                """
+                insert or ignore into games (name, owner, maxPlayers, ping, token)
+                values (?, ?, ?, 0, ?)
+                """,
+                (name, owner, maxPlayers, token)
             )
             result.addCallback(self.gameInserted, request, token)
             return NOT_DONE_YET 
@@ -75,14 +76,17 @@ class ListGames(Resource):
         self.cp = cp
 
     def gameSelected(self, result, request):
-        request.write(json.dumps(
-            [{"id" : row[0], "name" : row[1], "owner" : row[2], "ping" : row[3]}\
-            for row in result]
-        ))
+        request.write(json.dumps([{
+            "id"         : row[0],
+            "name"       : row[1],
+            "owner"      : row[2],
+            "ping"       : row[3],
+            "maxPlayers" : row[4]
+        } for row in result]))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        result = self.cp.runQuery("select id, name, owner, ping from games")
+        result = self.cp.runQuery("select id, name, owner, ping, maxPlayers from games")
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 

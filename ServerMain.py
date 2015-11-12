@@ -15,7 +15,7 @@ def createDatabase():
         """
         create table if not exists accounts (
             id integer primary key autoincrement,
-            name text,
+            name text unique,
             pictureUrl text,
             friends text
         )
@@ -26,7 +26,8 @@ def createDatabase():
         create table if not exists games (
             id integer primary key autoincrement,
             name text unique,
-            owner text,
+            owner integer,
+            maxPlayers integer,
             ping integer,
             token text
         )
@@ -37,6 +38,9 @@ root = Resource()
 root.putChild("insertAccount", Accounts.InsertAccount(cp))
 root.putChild("showAccount", Accounts.ShowAccount(cp))
 #root.putChild("updateAccount", Accounts.UpdateAccount(cp))
+root.putChild("insertGame", Lobby.InsertGame(cp))
+root.putChild("deleteGame", Lobby.RemoveGame(cp))
+root.putChild("listGames", Lobby.ListGames(cp))
 factory = Site(root)
 reactor.listenTCP(8880, factory)
 
