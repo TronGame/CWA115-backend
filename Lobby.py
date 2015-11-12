@@ -23,7 +23,7 @@ class InsertGame(Resource):
             name = request.args["name"][0]
             owner = int(request.args["owner"][0])
             maxPlayers = int(request.args["maxPlayers"][0])
-            token = makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
+            token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
             result = self.cp.runQuery(
                 """
                 insert or ignore into games (name, owner, maxPlayers, ping, token)
