@@ -13,28 +13,45 @@ class InsertGame(Resource):
         self.cp = cp
         self.rbg = random.SystemRandom()
 
-    def gameInserted(self, result, request, token):
-        request.write(json.dumps({"result" : result, "token" : token}))
+    def insertGame(self, interaction, name, owner, maxPlayers, token, playerToken):
+        interaction.execute("select token from accounts where id = ?", (owner, ))
+        realToken = interaction.fetchone()
+        if realToken is None or realToken[0] != playerToken:
+            return None
+
+        interaction.execute(
+            """
+            insert or ignore into games (name, owner, maxPlayers, ping, token)
+            values (?, ?, ?, 0, ?)
+            """,
+            (name, owner, maxPlayers, token)
+        )
+        interaction.execute("select max(id) from games")
+        return interaction.fetchone()[0]
+
+
+    def gameInserted(self, id, request, token):
+        if id is None:
+            request.write(json.dumps({"error" : "invalid token"}))
+        else:
+            request.write(json.dumps({"token" : token, "id" : id}))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
         try:
             name = request.args["name"][0]
+            playerToken = request.args["token"][0]
             owner = int(request.args["owner"][0])
             maxPlayers = int(request.args["maxPlayers"][0])
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
-            result = self.cp.runQuery(
-                """
-                insert or ignore into games (name, owner, maxPlayers, ping, token)
-                values (?, ?, ?, 0, ?)
-                """,
-                (name, owner, maxPlayers, token)
+            result = self.cp.runInteraction(
+                self.insertGame, name, owner, maxPlayers, token, playerToken
             )
             result.addCallback(self.gameInserted, request, token)
             return NOT_DONE_YET 
-        except KeyError:
-            return json.dumps({"error" : "not all arguments set"})
+        except Exception:
+            return json.dumps({"error" : "invalid arguments"})
 
 class RemoveGame(Resource):
 
