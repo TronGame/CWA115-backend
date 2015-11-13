@@ -9,8 +9,16 @@ class InsertAccount(Resource):
         self.__cp = cp
         self.rbg = random.SystemRandom()
 
-    def accountInserted(self, result, request, token):
-        request.write(json.dumps({"token" : token}))
+    def insertAccount(self, interaction, name, pictureUrl, friends, token):
+        interaction.execute(
+            "insert or ignore into accounts (name,pictureUrl,friends, token) values (?,?,?,?)",
+            (name, pictureUrl, friends, token)
+        )
+        cursor = interaction.execute("select max(id) from accounts")
+        return cursor.fetchone()[0]
+
+    def accountInserted(self, id, request, token):
+        request.write(json.dumps({"token" : token, "id" : id}))
         request.finish()
 
     def render_GET(self, request):
@@ -20,9 +28,9 @@ class InsertAccount(Resource):
             pictureUrl = request.args.get("pictureUrl",[""])[0]
             friends = request.args.get("friends",[""])[0]
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
-            result = self.__cp.runQuery(
-                "insert or ignore into accounts (name,pictureUrl,friends, token) values (?,?,?,?)",
-                (name, pictureUrl, friends, token)
+            result = self.__cp.runInteraction(
+                self.insertAccount,
+                name, pictureUrl, friends, token
             )
             result.addCallback(self.accountInserted, request, token)
             return NOT_DONE_YET
