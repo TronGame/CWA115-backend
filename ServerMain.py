@@ -17,7 +17,8 @@ def createDatabase():
             id integer primary key autoincrement,
             name text unique,
             pictureUrl text,
-            friends text
+            friends text,
+            token text
         )
         """
     )
