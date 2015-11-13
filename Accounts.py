@@ -1,4 +1,4 @@
-import json, random
+import json, random, Utility
 
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
@@ -22,7 +22,7 @@ class InsertAccount(Resource):
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
             result = self.__cp.runQuery(
                 "insert or ignore into accounts (name,pictureUrl,friends, token) values (?,?,?,?)",
-                (name, pictureUrl, friends)
+                (name, pictureUrl, friends, token)
             )
             result.addCallback(self.accountInserted, request, token)
             return NOT_DONE_YET
