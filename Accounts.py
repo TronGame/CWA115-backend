@@ -75,6 +75,8 @@ class UpdateAccount(Resource):
         request.defaultContentType = "application/json"
         try:
             id = request.args["id"][0]
+            # TODO for bram: fix before uncommenting in ServerMain.py
+            # (SQLi waiting to happen!)
             update_fields = self.getUpdateFields(request.args,["name","pictureUrl","friends"])
             result = self.__cp.runQuery("update accounts set " + update_fields + " where id = ?", (id, ))
             result.addCallback(self.accountUpdated, request)

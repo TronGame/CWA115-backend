@@ -94,16 +94,75 @@ class ListGames(Resource):
 
     def gameSelected(self, result, request):
         request.write(json.dumps([{
-            "id"         : row[0],
+            "id"         : int(row[0]),
             "name"       : row[1],
             "owner"      : row[2],
-            "ping"       : int(row[3]),
+            "currentGame"       : int(row[3]),
             "maxPlayers" : int(row[4])
         } for row in result]))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        result = self.cp.runQuery("select id, name, owner, ping, maxPlayers from games")
+        result = self.cp.runQuery("select id, name, owner, currentGame, maxPlayers from games")
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
+
+class JoinGame(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def gameJoined(self, result, request):
+        request.write(json.dumps({"result" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            # TODO: check if the game actually exists
+            gameId = request.args["gameId"][0]
+            playerId = request.args["id"][0]
+            token = request.args["token"][0]
+            result = self.cp.runQuery(
+                """
+                update or ignore accounts set currentGame = ?
+                where id = ? and token = ?
+                """,
+                (gameId, playerId, token)
+            )
+            result.addCallback(self.gameJoined, request)
+            return NOT_DONE_YET 
+        except:
+            return json.dumps({"error" : "not all arguments set"})
+
+class ListPlayers(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def accountsSelected(self, result, request):
+        request.write(json.dumps([{
+            "id"         : int(row[0]),
+            "name"       : row[1],
+            "pictureUrl" : row[2],
+        } for row in result]))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            gameId = request.args["gameId"][0]
+            result = self.cp.runQuery(
+                """
+                select id, name, pictureUrl from accounts
+                where currentGame = ?
+                """,
+                (gameId, )
+            )
+            result.addCallback(self.accountsSelected, request)
+            return NOT_DONE_YET 
+        except:
+            return json.dumps({"error" : "not all arguments set"})

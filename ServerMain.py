@@ -18,7 +18,8 @@ def createDatabase():
             name text unique,
             pictureUrl text,
             friends text,
-            token text
+            token text,
+            currentGame integer default 0
         )
         """
     )
@@ -41,7 +42,9 @@ root.putChild("showAccount", Accounts.ShowAccount(cp))
 #root.putChild("updateAccount", Accounts.UpdateAccount(cp))
 root.putChild("insertGame", Lobby.InsertGame(cp))
 root.putChild("deleteGame", Lobby.RemoveGame(cp))
+root.putChild("joinGame", Lobby.JoinGame(cp))
 root.putChild("listGames", Lobby.ListGames(cp))
+root.putChild("listPlayers", Lobby.ListPlayers(cp))
 factory = Site(root)
 reactor.listenTCP(8880, factory)
 
