@@ -17,7 +17,6 @@ def createDatabase():
             id integer primary key autoincrement,
             name text unique,
             pictureUrl text,
-            friends text,
             token text,
             currentGame integer default 0
         )
@@ -35,16 +34,42 @@ def createDatabase():
         )
         """
     )
+    cp.runQuery(
+        """
+        create table if not exists friends (
+            id integer primary key autoincrement,
+            userId1 integer,
+            userId2 integer
+        )
+        """
+    )
 
 root = Resource()
+# name => (string) New player's name ; pictureUrl => (string) Url to player's profile picture ; friends => (Array [])
+# The player's friends' userIds ; tokenLength => (integer) length of token to be created (default=25)
 root.putChild("insertAccount", Accounts.InsertAccount(cp))
+# id => (integer) Player's id ; token => (integer) Player's token
 root.putChild("showAccount", Accounts.ShowAccount(cp))
+# id => (integer) Player's id ; token => (integer) Player's token ; params => see insertAccount for available parameters
 #root.putChild("updateAccount", Accounts.UpdateAccount(cp))
+# id => (integer) Player's id ; token => (integer) Player's token
+root.putChild("deleteAccount", Accounts.DeleteAccount(cp))
+# name => (string) Room name ; token => (integer) Owner's token ; owner => (integer) userId of owner ; maxPlayers =>
+# (integer) Maximum number of players ; tokenLength => (integer) length of token to be created (default=25)
 root.putChild("insertGame", Lobby.InsertGame(cp))
+# id => (integer) Room id OR name => (string) Room name ; token => (integer) Room token
 root.putChild("deleteGame", Lobby.RemoveGame(cp))
+# gameId => (integer) Room id ; id => (integer) Player id ; token => (integer) Player token
 root.putChild("joinGame", Lobby.JoinGame(cp))
+# No arguments
 root.putChild("listGames", Lobby.ListGames(cp))
+# gameId => (integer) Room id
 root.putChild("listPlayers", Lobby.ListPlayers(cp))
+
+# For debugging purposes only:
+#root.putChild("showAll", Accounts.ShowAll(cp))
+#root.putChild("clearAll", Accounts.ShowAll(cp))
+
 factory = Site(root)
 reactor.listenTCP(8880, factory)
 

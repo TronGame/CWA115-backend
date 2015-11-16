@@ -15,7 +15,15 @@ class InsertAccount(Resource):
             (name, pictureUrl, friends, token)
         )
         interaction.execute("select max(id) from accounts")
-        return interaction.fetchone()[0]
+        userId = interaction.fetchone()[0]
+
+        for friend in friends:
+            print friend
+            interaction.execute(
+                "insert or ignore into friends (id,userId1,userId2) values (null,?,?)", (userId, friend)
+            )
+
+        return userId
 
     def accountInserted(self, id, request, token):
         request.write(json.dumps({"token" : token, "id" : id}))
@@ -28,7 +36,7 @@ class InsertAccount(Resource):
             pictureUrl = request.args.get("pictureUrl",[""])[0]
             friends = request.args.get("friends",[""])[0]
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
-            result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, friends, token)
+            result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, json.loads(friends), token)
             result.addCallback(self.accountInserted, request, token)
             return NOT_DONE_YET
         except KeyError:
@@ -43,15 +51,32 @@ class ShowAccount(Resource):
     def accountSelected(self, result, request):
         if not result:
             request.write(json.dumps({"error" : "profile not found"}))
+            request.finish()
         else:
-            request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2], "friends" : result[0][3]}))
+            request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2]}))
+            newResult = self.__cp.runQuery("select userId1, userId2 from friends where userId1=? or userId2=?", (id, id))
+            newResult.addCallback(self.friendsSelected, request)
+
+    def friendsSelected(self, result, request):
+        if not result:
+            request.write(json.dumps({"error" : "no friends found"}))
+        else:
+            userId = request.args["id"][0]
+            friends = []
+            for entry in result:
+                if entry[0]==userId:
+                    friends.append(entry[1])
+                else:
+                    friends.append(entry[0])
+            request.write(json.dumps({"friends" : friends, "friendsresult" : result}))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
         try:
             id = request.args["id"][0]
-            result = self.__cp.runQuery("select id, name, pictureUrl, friends from accounts where id = ?", (id, ))
+            token = request.args["token"][0]
+            result = self.__cp.runQuery("select id, name, pictureUrl from accounts where id = ? and token = ?", (id, token))
             result.addCallback(self.accountSelected, request)
             return NOT_DONE_YET 
         except KeyError:
@@ -75,10 +100,11 @@ class UpdateAccount(Resource):
         request.defaultContentType = "application/json"
         try:
             id = request.args["id"][0]
+            token = request.args["token"][0]
             # TODO for bram: fix before uncommenting in ServerMain.py
             # (SQLi waiting to happen!)
             update_fields = self.getUpdateFields(request.args,["name","pictureUrl","friends"])
-            result = self.__cp.runQuery("update accounts set " + update_fields + " where id = ?", (id, ))
+            result = self.__cp.runQuery("update accounts set " + update_fields + " where id = ? and token = ?", (id, token))
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
         except KeyError:
@@ -93,3 +119,82 @@ class UpdateAccount(Resource):
         update_query=", ".join(update_fields)
         print update_query
         return update_query
+
+class ShowAll(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def accountsSelected(self, result, request):
+        if not result:
+            request.write(json.dumps({"accounts" : {"error" : "profile not found"}}))
+        else:
+            results = dict()
+            for entry in result:
+                results[entry[0]] = {"name" : entry[1], "pictureUrl" : entry[2]}
+            request.write(json.dumps({"accounts" : results}))
+        self.__cp.runQuery("select * from friends").addCallback(self.friendsSelected, request)
+
+    def friendsSelected(self, result, request):
+        if not result:
+            request.write(json.dumps({"friends" : {"error" : "friends not found"}}))
+        else:
+            results = dict()
+            for entry in result:
+                results[entry[0]] = {"userId1" : entry[1], "userId2" : entry[2]}
+            request.write(json.dumps({"friends" : results }))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            result = self.__cp.runQuery("select * from accounts")
+            result.addCallback(self.accountsSelected, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class DeleteAccount(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def accountDeleted(self, result, request):
+        request.write(json.dumps({"success" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            result = self.__cp.runQuery("delete from accounts where id=? and token=?", (id, token))
+            result.addCallback(self.accountDeleted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class clearAll(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def accountsDeleted(self, result, request):
+        request.write(json.dumps({"accountDeletionSuccess" : True}))
+        self.__cp.runQuery("delete from friends").addCallback(self.friendsDeleted, request)
+
+    def friendsDeleted(self, result, request):
+        request.write(json.dumps({"friendsDeletionSuccess" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            result = self.__cp.runQuery("delete from accounts")
+            result.addCallback(self.accountsDeleted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
