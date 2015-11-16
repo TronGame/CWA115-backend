@@ -97,14 +97,13 @@ class ListGames(Resource):
             "id"         : int(row[0]),
             "name"       : row[1],
             "owner"      : row[2],
-            "currentGame"       : int(row[3]),
-            "maxPlayers" : int(row[4])
+            "maxPlayers" : int(row[3])
         } for row in result]))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        result = self.cp.runQuery("select id, name, owner, currentGame, maxPlayers from games")
+        result = self.cp.runQuery("select id, name, owner, maxPlayers from games")
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
 
