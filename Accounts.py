@@ -88,12 +88,24 @@ class UpdateAccount(Resource):
         Resource.__init__(self)
         self.__cp = cp
 
+    def updateAccount(self, interaction, id, token, newName, newPictureUrl, newFriends):
+        if newName is not None:
+            interaction.execute("update accounts set name=? where id=? and token=?",(newName,id,token))
+        if newPictureUrl is not None:
+            interaction.execute("update accounts set pictureUrl=? where id=? and token=?",(newPictureUrl,id,token))
+        if newFriends is not None:
+            # First delete previous friend records
+            interaction.execute("delete from friends where userId1=? or userId2=?",(id,id))
+            # Then insert new friends
+            for friend in newFriends:
+                interaction.execute("insert or ignore into friends (id,userId1,userId2) values (null,?,?)",(id,friend))
+
     def accountUpdated(self, result, request):
         #if not result:
         #    request.write(json.dumps({"error" : "profile not found"}))
         #else:
         #    request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2], "friends" : result[0][3]}))
-        request.write(json.dumps(request))
+        request.write(json.dumps({"succes" : True}))
         request.finish()
 
     def render_GET(self, request):
@@ -101,24 +113,14 @@ class UpdateAccount(Resource):
         try:
             id = request.args["id"][0]
             token = request.args["token"][0]
-            # TODO for bram: fix before uncommenting in ServerMain.py
-            # (SQLi waiting to happen!)
-            update_fields = self.getUpdateFields(request.args,["name","pictureUrl","friends"])
-            result = self.__cp.runQuery("update accounts set " + update_fields + " where id = ? and token = ?", (id, token))
+            newName = request.args.get("name",[None])[0]
+            newPictureUrl = request.args.get("pictureUrl",[None])[0]
+            newFriends = request.args.get("friends",[None])[0]
+            result = self.__cp.runInteraction(self.insertAccount, id, token, newName, newPictureUrl, json.loads(newFriends))
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
         except KeyError:
             return json.dumps({"error" : "not all arguments set"})
-
-    def getUpdateFields(self,requestArgs,fields):
-        update_fields = []
-        for field in fields:
-            update_field = requestArgs.get(field,None)
-            if update_field is not None:
-                update_fields.append(field + '="' + update_field[0] + '"')
-        update_query=", ".join(update_fields)
-        print update_query
-        return update_query
 
 class ShowAll(Resource):
 
