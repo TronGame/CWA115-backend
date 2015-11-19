@@ -53,7 +53,7 @@ class ShowAccount(Resource):
             request.write(json.dumps({"error" : "profile not found"}))
             request.finish()
         else:
-            id = result[0][0]
+            id = request.args["id"][0]
             request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2]}))
             newResult = self.__cp.runQuery("select userId1, userId2 from friends where userId1=? or userId2=?", (id, id))
             newResult.addCallback(self.friendsSelected, request)
@@ -65,11 +65,11 @@ class ShowAccount(Resource):
             userId = request.args["id"][0]
             friends = []
             for entry in result:
-                if entry[0]==userId:
+                if int(entry[0])==int(userId):
                     friends.append(entry[1])
                 else:
                     friends.append(entry[0])
-            request.write(json.dumps({"friends" : friends, "friendsresult" : result}))
+            request.write(json.dumps({"friends" : friends}))
         request.finish()
 
     def render_GET(self, request):
@@ -117,7 +117,7 @@ class UpdateAccount(Resource):
             newName = request.args.get("name",[None])[0]
             newPictureUrl = request.args.get("pictureUrl",[None])[0]
             newFriends = request.args.get("friends",[None])[0]
-            result = self.__cp.runInteraction(self.insertAccount, id, token, newName, newPictureUrl, json.loads(newFriends))
+            result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl, json.loads(newFriends))
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
         except KeyError:
@@ -165,6 +165,8 @@ class DeleteAccount(Resource):
         self.__cp = cp
 
     def accountDeleted(self, result, request):
+        id = request.args["id"][0]
+        self.__cp.runQuery("delete from friends where userId1=? or userId2=?", (id,id))
         request.write(json.dumps({"success" : True}))
         request.finish()
 

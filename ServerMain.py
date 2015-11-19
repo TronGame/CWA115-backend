@@ -51,7 +51,7 @@ root.putChild("insertAccount", Accounts.InsertAccount(cp))
 # id => (integer) Player's id ; token => (integer) Player's token
 root.putChild("showAccount", Accounts.ShowAccount(cp))
 # id => (integer) Player's id ; token => (integer) Player's token ; params => see insertAccount for available parameters
-#root.putChild("updateAccount", Accounts.UpdateAccount(cp))
+root.putChild("updateAccount", Accounts.UpdateAccount(cp))
 # id => (integer) Player's id ; token => (integer) Player's token
 root.putChild("deleteAccount", Accounts.DeleteAccount(cp))
 # name => (string) Room name ; token => (integer) Owner's token ; owner => (integer) userId of owner ; maxPlayers =>
@@ -67,8 +67,8 @@ root.putChild("listGames", Lobby.ListGames(cp))
 root.putChild("listPlayers", Lobby.ListPlayers(cp))
 
 # For debugging purposes only:
-#root.putChild("showAll", Accounts.ShowAll(cp))
-#root.putChild("clearAll", Accounts.ShowAll(cp))
+root.putChild("showAll", Accounts.ShowAll(cp))
+root.putChild("clearAll", Accounts.ShowAll(cp))
 
 factory = Site(root)
 reactor.listenTCP(8880, factory)
