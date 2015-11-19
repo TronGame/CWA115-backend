@@ -1,6 +1,4 @@
-import sys, json
 from twisted.web.server import Site
-from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
 from twisted.internet import reactor
 
@@ -67,8 +65,8 @@ root.putChild("listGames", Lobby.ListGames(cp))
 root.putChild("listPlayers", Lobby.ListPlayers(cp))
 
 # For debugging purposes only:
-root.putChild("showAll", Accounts.ShowAll(cp))
-root.putChild("clearAll", Accounts.ShowAll(cp))
+#root.putChild("showAll", Accounts.ShowAll(cp))
+#root.putChild("clearAll", Accounts.ShowAll(cp))
 
 factory = Site(root)
 reactor.listenTCP(8880, factory)
