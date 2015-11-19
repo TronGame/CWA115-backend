@@ -26,7 +26,7 @@ class InsertAccount(Resource):
         try:
             name = request.args["name"][0]
             pictureUrl = request.args.get("pictureUrl",[""])[0]
-            friends = request.args.get("friends",[""])[0]
+            friends = request.args.get("friends",["[]"])[0]
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
             result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, friends, token)
             result.addCallback(self.accountInserted, request, token)
