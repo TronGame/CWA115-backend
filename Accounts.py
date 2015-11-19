@@ -11,8 +11,8 @@ class InsertAccount(Resource):
 
     def insertAccount(self, interaction, name, pictureUrl, friends, token):
         interaction.execute(
-            "insert or ignore into accounts (name,pictureUrl,friends, token) values (?,?,?,?)",
-            (name, pictureUrl, friends, token)
+            "insert or ignore into accounts (name,pictureUrl,token) values (?,?,?)",
+            (name, pictureUrl, token)
         )
         interaction.execute("select max(id) from accounts")
         userId = interaction.fetchone()[0]
@@ -53,6 +53,7 @@ class ShowAccount(Resource):
             request.write(json.dumps({"error" : "profile not found"}))
             request.finish()
         else:
+            id = result[0][0]
             request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2]}))
             newResult = self.__cp.runQuery("select userId1, userId2 from friends where userId1=? or userId2=?", (id, id))
             newResult.addCallback(self.friendsSelected, request)

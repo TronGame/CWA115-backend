@@ -72,7 +72,6 @@ root.putChild("listPlayers", Lobby.ListPlayers(cp))
 
 factory = Site(root)
 reactor.listenTCP(8880, factory)
-
 createDatabase()
 
 reactor.run()
