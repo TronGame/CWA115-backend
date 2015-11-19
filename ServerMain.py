@@ -29,7 +29,7 @@ def createDatabase():
             maxPlayers integer,
             ping integer,
             token text,
-            hasStarted boolean
+            hasStarted boolean default false
         )
         """
     )
@@ -59,11 +59,10 @@ root.putChild("insertGame", Lobby.InsertGame(cp))
 # id => (integer) Room id OR name => (string) Room name ; token => (integer) Room token
 root.putChild("deleteGame", Lobby.RemoveGame(cp))
 # gameId => (integer) Room id ; id => (integer) Player id ; token => (integer) Player token
+root.putChild("startGame", Lobby.StartGame(cp))
 root.putChild("joinGame", Lobby.JoinGame(cp))
-# No arguments
 root.putChild("listGames", Lobby.ListGames(cp))
-# gameId => (integer) Room id
-root.putChild("listPlayers", Lobby.ListPlayers(cp))
+root.putChild("showGame", Lobby.ShowGame(cp))
 
 # For debugging purposes only:
 #root.putChild("showAll", Accounts.ShowAll(cp))
