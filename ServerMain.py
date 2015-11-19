@@ -32,7 +32,7 @@ def createDatabase():
             maxPlayers integer,
             ping integer,
             token text,
-            hasStarted boolean
+            hasStarted boolean default false
         )
         """
     )
@@ -43,9 +43,10 @@ root.putChild("showAccount", Accounts.ShowAccount(cp))
 #root.putChild("updateAccount", Accounts.UpdateAccount(cp))
 root.putChild("insertGame", Lobby.InsertGame(cp))
 root.putChild("deleteGame", Lobby.RemoveGame(cp))
+root.putChild("startGame", Lobby.StartGame(cp))
 root.putChild("joinGame", Lobby.JoinGame(cp))
 root.putChild("listGames", Lobby.ListGames(cp))
-root.putChild("listPlayers", Lobby.ListPlayers(cp))
+root.putChild("showGame", Lobby.ShowGame(cp))
 factory = Site(root)
 reactor.listenTCP(8880, factory)
 
