@@ -114,18 +114,29 @@ class ListGames(Resource):
         Resource.__init__(self)
         self.cp = cp
 
+    def selectGameInfo(self, interaction):
+        interaction.execute("select id, name, owner, maxPlayers from games")
+        gameInfo = interaction.fetchall()
+        result = []
+        for game in gameInfo:
+            ownerId = game[2]
+            interaction.execute("select name from accounts where id = ?", (ownerId, ))
+            result.append(game + (interaction.fetchone()[0], ))
+        return result
+
     def gameSelected(self, result, request):
         request.write(json.dumps([{
             "id"         : int(row[0]),
             "name"       : row[1],
             "owner"      : row[2],
-            "maxPlayers" : int(row[3])
+            "maxPlayers" : int(row[3]),
+            "ownerName"  : row[4]
         } for row in result]))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        result = self.cp.runQuery("select id, name, owner, maxPlayers from games")
+        result = self.cp.runInteraction(self.selectGameInfo)
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
 
@@ -202,12 +213,12 @@ class ShowGame(Resource):
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        #try:
-        gameId = int(request.args["gameId"][0])
-        result = self.cp.runInteraction(
-            self.selectGameInfo, gameId
-        )
-        result.addCallback(self.gameInfoSelected, request)
-        return NOT_DONE_YET 
-        #except:
-        #    return json.dumps({"error" : "not all arguments set"})
+        try:
+            gameId = int(request.args["gameId"][0])
+            result = self.cp.runInteraction(
+                self.selectGameInfo, gameId
+            )
+            result.addCallback(self.gameInfoSelected, request)
+            return NOT_DONE_YET 
+        except:
+            return json.dumps({"error" : "not all arguments set"})
