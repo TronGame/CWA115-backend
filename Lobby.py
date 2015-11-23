@@ -133,8 +133,8 @@ class ListGames(Resource):
             "name"         : row[1],
             "owner"        : row[2],
             "maxPlayers"   : int(row[3]),
-            "ownerName"    : row[4],
-            "canBreakWall" : int(row[5])
+            "canBreakWall" : int(row[4]),
+            "ownerName"    : row[5]
         } for row in result]))
         request.finish()
 
