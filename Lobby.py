@@ -115,7 +115,7 @@ class ListGames(Resource):
         self.cp = cp
 
     def selectGameInfo(self, interaction):
-        interaction.execute("select id, name, owner, maxPlayers from games")
+        interaction.execute("select id, name, owner, maxPlayers from games where hasStarted = false")
         gameInfo = interaction.fetchall()
         result = []
         for game in gameInfo:
