@@ -103,7 +103,7 @@ class StartGame(Resource):
             return json.dumps({"error" : "no token given"})
 
         result = self.cp.runQuery(
-            "update games set hasStarted = true where token = ?", token
+            "update games set hasStarted = 1 where token = ?", token
         )
         result.addCallback(self.gameJoined, request, token)
         return NOT_DONE_YET 
@@ -115,7 +115,7 @@ class ListGames(Resource):
         self.cp = cp
 
     def selectGameInfo(self, interaction):
-        interaction.execute("select id, name, owner, maxPlayers from games where hasStarted = false")
+        interaction.execute("select id, name, owner, maxPlayers from games where hasStarted = 0")
         gameInfo = interaction.fetchall()
         result = []
         for game in gameInfo:

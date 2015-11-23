@@ -29,7 +29,7 @@ def createDatabase():
             maxPlayers integer,
             ping integer,
             token text,
-            hasStarted boolean default false
+            hasStarted integer default 0
         )
         """
     )
