@@ -15,6 +15,7 @@ def createDatabase():
             id integer primary key autoincrement,
             name text unique,
             pictureUrl text,
+            facebookId integer,
             token text,
             currentGame integer default 0
         )
@@ -64,6 +65,7 @@ root.putChild("startGame", Lobby.StartGame(cp))
 root.putChild("joinGame", Lobby.JoinGame(cp))
 root.putChild("listGames", Lobby.ListGames(cp))
 root.putChild("showGame", Lobby.ShowGame(cp))
+root.putChild("getFriendIds", Accounts.GetFriendIds(cp))
 
 # For debugging purposes only:
 #root.putChild("showAll", Accounts.ShowAll(cp))
