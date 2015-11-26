@@ -220,6 +220,7 @@ class GetFriendIds(Resource):
         self.__friends.append(result[0][0])
         if len(self.__friends)==self.__friendsCount:
             request.write(json.dumps({"friends" : json.dumps(self.__friends)}))
+            request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
