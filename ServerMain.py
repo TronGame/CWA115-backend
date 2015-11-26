@@ -64,6 +64,7 @@ root.putChild("startGame", Lobby.StartGame(cp))
 root.putChild("joinGame", Lobby.JoinGame(cp))
 root.putChild("listGames", Lobby.ListGames(cp))
 root.putChild("showGame", Lobby.ShowGame(cp))
+root.putChild("kickPlayer", Lobby.KickPlayer(cp))
 
 # For debugging purposes only:
 #root.putChild("showAll", Accounts.ShowAll(cp))
