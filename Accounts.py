@@ -9,13 +9,16 @@ class InsertAccount(Resource):
         self.__cp = cp
         self.rbg = random.SystemRandom()
 
-    def insertAccount(self, interaction, name, pictureUrl, friends, token):
+    def insertAccount(self, interaction, name, pictureUrl, friends, facebookId, token):
         interaction.execute(
             "insert or ignore into accounts (name,pictureUrl,token) values (?,?,?)",
             (name, pictureUrl, token)
         )
         interaction.execute("select max(id) from accounts")
         userId = interaction.fetchone()[0]
+
+        if facebookId is not None:
+            interaction.execute("update accounts set facebookId=? where id=?", (facebookId, userId))
 
         for friend in friends:
             print friend
@@ -35,8 +38,9 @@ class InsertAccount(Resource):
             name = request.args["name"][0]
             pictureUrl = request.args.get("pictureUrl",[""])[0]
             friends = request.args.get("friends",["[]"])[0]
+            facebookId = request.args.get("facebookId",[None])[0]
             token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
-            result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, json.loads(friends), token)
+            result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, json.loads(friends), facebookId, token)
             result.addCallback(self.accountInserted, request, token)
             return NOT_DONE_YET
         except KeyError:
@@ -135,7 +139,7 @@ class ShowAll(Resource):
         else:
             results = dict()
             for entry in result:
-                results[entry[0]] = {"name" : entry[1], "pictureUrl" : entry[2]}
+                results[entry[0]] = {"name" : entry[1], "pictureUrl" : entry[2], "facebookId" : entry[3]}
             request.write(json.dumps({"accounts" : results}))
         self.__cp.runQuery("select * from friends").addCallback(self.friendsSelected, request)
 
@@ -200,6 +204,38 @@ class clearAll(Resource):
         try:
             result = self.__cp.runQuery("delete from accounts")
             result.addCallback(self.accountsDeleted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class GetFriendIds(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+        self.__friends = []
+        self.__friendsCount = 0
+
+    def friendSelected(self, result, request):
+        # Fix problem when facebook user has authorized app, but isn't registered on our server:
+        if len(result)==0:
+            self.__friendsCount -= 1
+        else:
+            self.__friends.append(result[0][0])
+        if len(self.__friends)==self.__friendsCount:
+            request.write(json.dumps({"friends" : json.dumps(self.__friends)}))
+            request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            self.__friends = []
+            facebookIds = json.loads(request.args["facebookIds"][0])
+            if len(facebookIds)==0:
+                return json.dumps({"friends" : json.dumps([])})
+            self.__friendsCount = len(facebookIds)
+            for facebookId in facebookIds:
+                self.__cp.runQuery("select id from accounts where facebookId=?",(long(facebookId),)).addCallback(self.friendSelected, request)
             return NOT_DONE_YET
         except KeyError:
             return json.dumps({"error" : "not all arguments set"})
