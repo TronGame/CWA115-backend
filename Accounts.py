@@ -217,7 +217,11 @@ class GetFriendIds(Resource):
         self.__friendsCount = 0
 
     def friendSelected(self, result, request):
-        self.__friends.append(result[0][0])
+        # Fix problem when facebook user has authorized app, but isn't registered on our server:
+        if len(result)==0:
+            self.__friendsCount -= 1
+        else:
+            self.__friends.append(result[0][0])
         if len(self.__friends)==self.__friendsCount:
             request.write(json.dumps({"friends" : json.dumps(self.__friends)}))
             request.finish()
@@ -227,6 +231,8 @@ class GetFriendIds(Resource):
         try:
             self.__friends = []
             facebookIds = json.loads(request.args["facebookIds"][0])
+            if len(facebookIds)==0:
+                return json.dumps({"friends" : json.dumps([])})
             self.__friendsCount = len(facebookIds)
             for facebookId in facebookIds:
                 self.__cp.runQuery("select id from accounts where facebookId=?",(long(facebookId),)).addCallback(self.friendSelected, request)
