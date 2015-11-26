@@ -265,3 +265,40 @@ class KickPlayer(Resource):
             return NOT_DONE_YET 
         except:
             return json.dumps({"error" : "not all arguments set"})
+
+class LeaveGame(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def leftGame(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def leaveGame(self, interaction, playerId, token):
+        interaction.execute("select token from accounts where id = ?", (playerId, ))
+        realToken = interaction.fetchone()
+        if realToken is None or realToken[0] != token:
+            return False
+
+        interaction.execute(
+            """
+            update or ignore accounts set currentGame = 0 where id = ?
+            """,
+            (playerId, )
+        )
+        return True
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            playerId = int(request.args["playerId"][0])
+            token = request.args["token"][0]
+            result = self.cp.runInteraction(
+                self.leaveGame, playerId, token
+            )
+            result.addCallback(self.leftGame, request)
+            return NOT_DONE_YET 
+        except:
+            return json.dumps({"error" : "not all arguments set"})
