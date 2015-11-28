@@ -70,7 +70,7 @@ root.putChild("leaveGame", Lobby.LeaveGame(cp))
 root.putChild("getFriendIds", Accounts.GetFriendIds(cp))
 
 # For debugging purposes only:
-#root.putChild("showAll", Accounts.ShowAll(cp))
+root.putChild("showAll", Accounts.ShowAll(cp))
 #root.putChild("clearAll", Accounts.ShowAll(cp))
 
 factory = Site(root)

@@ -110,7 +110,7 @@ class UpdateAccount(Resource):
         #    request.write(json.dumps({"error" : "profile not found"}))
         #else:
         #    request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2], "friends" : result[0][3]}))
-        request.write(json.dumps({"succes" : True}))
+        request.write(json.dumps({"success" : True}))
         request.finish()
 
     def render_GET(self, request):
