@@ -1,7 +1,7 @@
 import random, string
 from hashlib import sha256
 
-TOKEN_LENGTH = 64 # In hex characters (hence 128 bits)
+TOKEN_LENGTH = 64 # In hex characters (hence 256 bits)
 
 def makeRandomToken(rbg, length = TOKEN_LENGTH):
     return "".join([rbg.choice(string.hexdigits) for i in xrange(length)])
