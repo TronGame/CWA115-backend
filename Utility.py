@@ -12,4 +12,4 @@ def hashToken(token):
 
 def checkToken(token, realTokenHash):
     # Assume side channels (timing attacks) are out of scope
-    return hashToken(token) == tokenHash
+    return hashToken(token) == realTokenHash
