@@ -12,7 +12,7 @@ class InsertAccount(Resource):
     def insertAccount(self, interaction, name, pictureUrl, friends, facebookId, token):
         interaction.execute(
             "insert or ignore into accounts (name,pictureUrl,token) values (?,?,?)",
-            (name, pictureUrl, token)
+            (name, pictureUrl, Utility.hashToken(token))
         )
         interaction.execute("select max(id) from accounts")
         userId = interaction.fetchone()[0]
@@ -39,7 +39,7 @@ class InsertAccount(Resource):
             pictureUrl = request.args.get("pictureUrl",[""])[0]
             friends = request.args.get("friends",["[]"])[0]
             facebookId = request.args.get("facebookId",[None])[0]
-            token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
+            token = Utility.makeRandomToken(self.rbg)
             result = self.__cp.runInteraction(self.insertAccount, name, pictureUrl, json.loads(friends), facebookId, token)
             result.addCallback(self.accountInserted, request, token)
             return NOT_DONE_YET
@@ -81,7 +81,7 @@ class ShowAccount(Resource):
         try:
             id = request.args["id"][0]
             token = request.args["token"][0]
-            result = self.__cp.runQuery("select id, name, pictureUrl from accounts where id = ? and token = ?", (id, token))
+            result = self.__cp.runQuery("select id, name, pictureUrl from accounts where id = ? and token = ?", (id, Utility.hashToken(token)))
             result.addCallback(self.accountSelected, request)
             return NOT_DONE_YET 
         except KeyError:
@@ -94,10 +94,15 @@ class UpdateAccount(Resource):
         self.__cp = cp
 
     def updateAccount(self, interaction, id, token, newName, newPictureUrl, newFriends):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        result = interaction.fetchone()
+        if result is None or not Utility.checkToken(token, result[0]):
+            return False
+
         if newName is not None:
-            interaction.execute("update accounts set name=? where id=? and token=?",(newName,id,token))
+            interaction.execute("update accounts set name=? where id=?",(newName,id))
         if newPictureUrl is not None:
-            interaction.execute("update accounts set pictureUrl=? where id=? and token=?",(newPictureUrl,id,token))
+            interaction.execute("update accounts set pictureUrl=? where id=?",(newPictureUrl,id))
         if newFriends is not None:
             # First delete previous friend records
             interaction.execute("delete from friends where userId1=? or userId2=?",(id,id))
@@ -105,12 +110,10 @@ class UpdateAccount(Resource):
             for friend in newFriends:
                 interaction.execute("insert or ignore into friends (id,userId1,userId2) values (null,?,?)",(id,friend))
 
+        return True
+
     def accountUpdated(self, result, request):
-        #if not result:
-        #    request.write(json.dumps({"error" : "profile not found"}))
-        #else:
-        #    request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2], "friends" : result[0][3]}))
-        request.write(json.dumps({"succes" : True}))
+        request.write(json.dumps({"succes" : result}))
         request.finish()
 
     def render_GET(self, request):
@@ -179,7 +182,7 @@ class DeleteAccount(Resource):
         try:
             id = request.args["id"][0]
             token = request.args["token"][0]
-            result = self.__cp.runQuery("delete from accounts where id=? and token=?", (id, token))
+            result = self.__cp.runQuery("delete from accounts where id=? and token=?", (id, Utility.hashToken(token)))
             result.addCallback(self.accountDeleted, request)
             return NOT_DONE_YET
         except KeyError:

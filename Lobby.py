@@ -16,7 +16,7 @@ class InsertGame(Resource):
     def insertGame(self, interaction, name, owner, maxPlayers, token, playerToken, wallbreaker):
         interaction.execute("select token from accounts where id = ?", (owner, ))
         realToken = interaction.fetchone()
-        if realToken is None or realToken[0] != playerToken:
+        if realToken is None or not Utility.checkToken(playerToken, realToken[0]):
             return None
 
         interaction.execute(
@@ -24,7 +24,7 @@ class InsertGame(Resource):
             insert or ignore into games (name, owner, maxPlayers, ping, token, wallbreaker)
             values (?, ?, ?, 0, ?, ?)
             """,
-            (name, owner, maxPlayers, token, wallbreaker)
+            (name, owner, maxPlayers, Utility.hashToken(token), wallbreaker)
         )
         interaction.execute("select max(id) from games")
         return interaction.fetchone()[0]
@@ -45,7 +45,7 @@ class InsertGame(Resource):
             owner = int(request.args["owner"][0])
             maxPlayers = int(request.args["maxPlayers"][0])
             wallbreaker = int(request.args["canBreakWall"][0])
-            token = Utility.makeRandomToken(self.rbg, int(request.args.get("tokenLength", [25])[0]))
+            token = Utility.makeRandomToken(self.rbg)
             result = self.cp.runInteraction(
                 self.insertGame, name, owner, maxPlayers, token, playerToken, wallbreaker
             )
@@ -73,7 +73,7 @@ class RemoveGame(Resource):
         if "name" in request.args:
             name = request.args["name"][0]
             result = self.cp.runQuery(
-                "delete from games where name = ? and token = ?", (name, token)
+                "delete from games where name = ? and token = ?", (name, Utility.hashToken(token))
             )
             result.addCallback(self.gameRemoved, request, token)
             return NOT_DONE_YET 
@@ -104,7 +104,7 @@ class StartGame(Resource):
             return json.dumps({"error" : "no token given"})
 
         result = self.cp.runQuery(
-            "update games set hasStarted = 1 where token = ?", (token,)
+            "update games set hasStarted = 1 where token = ?", (Utility.hashToken(token),)
         )
         result.addCallback(self.gameJoined, request, token)
         return NOT_DONE_YET 
@@ -166,7 +166,7 @@ class JoinGame(Resource):
                 update or ignore accounts set currentGame = ?
                 where id = ? and token = ?
                 """,
-                (gameId, playerId, token)
+                (gameId, playerId, Utility.hashToken(token))
             )
             result.addCallback(self.gameJoined, request)
             return NOT_DONE_YET 
@@ -240,7 +240,7 @@ class KickPlayer(Resource):
     def kickPlayer(self, interaction, gameId, playerId, token):
         interaction.execute("select token from games where id = ?", (gameId, ))
         realToken = interaction.fetchone()
-        if realToken is None or realToken[0] != token:
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
             return False
 
         interaction.execute(
@@ -279,7 +279,7 @@ class LeaveGame(Resource):
     def leaveGame(self, interaction, playerId, token):
         interaction.execute("select token from accounts where id = ?", (playerId, ))
         realToken = interaction.fetchone()
-        if realToken is None or realToken[0] != token:
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
             return False
 
         interaction.execute(
