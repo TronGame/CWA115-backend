@@ -2,6 +2,7 @@ import json, random, Utility
 
 from twisted.web.server import NOT_DONE_YET
 from twisted.web.resource import Resource
+from sqlite3 import IntegrityError
 
 class InsertAccount(Resource):
     def __init__(self, cp):
@@ -10,26 +11,31 @@ class InsertAccount(Resource):
         self.rbg = random.SystemRandom()
 
     def insertAccount(self, interaction, name, pictureUrl, friends, facebookId, token):
-        interaction.execute(
-            "insert or ignore into accounts (name,pictureUrl,token) values (?,?,?)",
-            (name, pictureUrl, Utility.hashToken(token))
-        )
-        interaction.execute("select max(id) from accounts")
-        userId = interaction.fetchone()[0]
-
-        if facebookId is not None:
-            interaction.execute("update accounts set facebookId=? where id=?", (facebookId, userId))
-
-        for friend in friends:
-            print friend
+        try:
             interaction.execute(
-                "insert or ignore into friends (id,userId1,userId2) values (null,?,?)", (userId, friend)
+                "insert or fail into accounts (name,pictureUrl,token) values (?,?,?)",
+                (name, pictureUrl, Utility.hashToken(token))
             )
+            interaction.execute("select max(id) from accounts")
+            userId = interaction.fetchone()[0]
 
-        return userId
+            if facebookId is not None:
+                interaction.execute("update accounts set facebookId=? where id=?", (facebookId, userId))
+
+            for friend in friends:
+                interaction.execute(
+                    "insert or ignore into friends (id,userId1,userId2) values (null,?,?)", (userId, friend)
+                )
+
+            return userId
+        except IntegrityError:
+            return None
 
     def accountInserted(self, id, request, token):
-        request.write(json.dumps({"token" : token, "id" : id}))
+        if id is None:
+            request.write(json.dumps({"error" : "profile already exists"}))
+        else:
+            request.write(json.dumps({"token" : token, "id" : id}))
         request.finish()
 
     def render_GET(self, request):
@@ -51,6 +57,7 @@ class ShowAccount(Resource):
     def __init__(self,cp):
         Resource.__init__(self)
         self.__cp = cp
+        self.__account = None
 
     def accountSelected(self, result, request):
         if not result:
@@ -58,27 +65,26 @@ class ShowAccount(Resource):
             request.finish()
         else:
             id = request.args["id"][0]
-            request.write(json.dumps({"id" : result[0][0], "name" : result[0][1], "pictureUrl" : result[0][2]}))
             newResult = self.__cp.runQuery("select userId1, userId2 from friends where userId1=? or userId2=?", (id, id))
-            newResult.addCallback(self.friendsSelected, request)
+            newResult.addCallback(self.friendsSelected, request, result[0])
 
-    def friendsSelected(self, result, request):
+    def friendsSelected(self, result, request, account):
         if not result:
-            request.write(json.dumps({"error" : "no friends found"}))
-        else:
-            userId = request.args["id"][0]
-            friends = []
-            for entry in result:
-                if int(entry[0])==int(userId):
-                    friends.append(entry[1])
-                else:
-                    friends.append(entry[0])
-            request.write(json.dumps({"friends" : friends}))
+            result = [] # empty friends list
+        userId = request.args["id"][0]
+        friends = []
+        for entry in result:
+            if int(entry[0])==int(userId):
+                friends.append(entry[1])
+            else:
+                friends.append(entry[0])
+        request.write(json.dumps({"id" : account[0], "name" : account[1], "pictureUrl" : account[2], "friends" : friends}))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
         try:
+            self.__account = None # Reset account value
             id = request.args["id"][0]
             token = request.args["token"][0]
             result = self.__cp.runQuery("select id, name, pictureUrl from accounts where id = ? and token = ?", (id, Utility.hashToken(token)))
