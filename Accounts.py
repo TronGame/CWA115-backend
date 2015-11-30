@@ -110,6 +110,7 @@ class UpdateAccount(Resource):
         if newPictureUrl is not None:
             interaction.execute("update accounts set pictureUrl=? where id=?",(newPictureUrl,id))
         if newFriends is not None:
+            newFriends = json.loads(newFriends)
             # First delete previous friend records
             interaction.execute("delete from friends where userId1=? or userId2=?",(id,id))
             # Then insert new friends
@@ -119,7 +120,7 @@ class UpdateAccount(Resource):
         return True
 
     def accountUpdated(self, result, request):
-        request.write(json.dumps({"succes" : result}))
+        request.write(json.dumps({"success" : result}))
         request.finish()
 
     def render_GET(self, request):
@@ -129,8 +130,8 @@ class UpdateAccount(Resource):
             token = request.args["token"][0]
             newName = request.args.get("name",[None])[0]
             newPictureUrl = request.args.get("pictureUrl",[None])[0]
-            newFriends = request.args.get("friends",[""])[0]
-            result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl, json.loads(newFriends))
+            newFriends = request.args.get("friends",[None])[0]
+            result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl, newFriends)
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
         except KeyError:
