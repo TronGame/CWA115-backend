@@ -129,7 +129,7 @@ class UpdateAccount(Resource):
             token = request.args["token"][0]
             newName = request.args.get("name",[None])[0]
             newPictureUrl = request.args.get("pictureUrl",[None])[0]
-            newFriends = request.args.get("friends",[None])[0]
+            newFriends = request.args.get("friends",[""])[0]
             result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl, json.loads(newFriends))
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
