@@ -13,7 +13,7 @@ def createDatabase():
         """
         create table if not exists accounts (
             id integer primary key autoincrement,
-            name text unique,
+            name text,
             pictureUrl text,
             facebookId integer,
             token text,
