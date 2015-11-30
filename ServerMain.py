@@ -31,7 +31,8 @@ def createDatabase():
             ping integer,
             token text,
             wallbreaker integer,
-            hasStarted integer default 0
+            hasStarted integer default 0,
+            winner integer
         )
         """
     )
