@@ -70,6 +70,7 @@ root.putChild("kickPlayer", Lobby.KickPlayer(cp))
 root.putChild("leaveGame", Lobby.LeaveGame(cp))
 root.putChild("endGame", Lobby.EndGame(cp))
 root.putChild("getFriendIds", Accounts.GetFriendIds(cp))
+root.putChild("scoreboard", Accounts.ScoreBoard(cp))
 
 # For debugging purposes only:
 root.putChild("showAll", Accounts.ShowAll(cp))

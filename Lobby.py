@@ -316,6 +316,7 @@ class EndGame(Resource):
         if realToken is None or not Utility.checkToken(token, realToken[0]):
             return False
 
+        # TODO: do not allow winning if winnerId == ownerId?
         interaction.execute(
             """
             update or ignore games set winner = ? where id = ?

@@ -249,3 +249,34 @@ class GetFriendIds(Resource):
             return NOT_DONE_YET
         except KeyError:
             return json.dumps({"error" : "not all arguments set"})
+
+class ScoreBoard(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def selectPlayerScores(self, interaction):
+        interaction.execute("select id, name from accounts")
+        result = []
+        for account in interaction:
+            interaction.execute("select count() from games where winner = ?", (account[0], ))
+            gamesWon = interaction.fetchone()
+            gamesWon = 0 if gamesWon is None else gamesWon[0]
+            result.append((account[0], account[1], gamesWon))
+
+        return sorted(result, cmp = lambda x, y : cmp(y[-1], x[-1]))
+
+    def scoresSelected(self, result, request):
+        request.write(json.dumps([{
+            "id"           : int(row[0]),
+            "name"         : row[1],
+            "gamesWon"     : int(row[2]),
+        } for row in result]))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        result = self.cp.runInteraction(self.selectPlayerScores)
+        result.addCallback(self.scoresSelected, request)
+        return NOT_DONE_YET 
