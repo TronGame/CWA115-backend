@@ -302,3 +302,41 @@ class LeaveGame(Resource):
             return NOT_DONE_YET 
         except:
             return json.dumps({"error" : "not all arguments set"})
+
+class EndGame(Resource):
+
+    def __init__(self, cp):
+        Resource.__init__(self)
+        self.cp = cp
+
+    def gameEnded(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def endGame(self, interaction, gameId, token, winnerId):
+        interaction.execute("select token from games where id = ?", (gameId, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        interaction.execute(
+            """
+            update or ignore games set winner = ? where id = ?
+            """,
+            (winnerId, gameId, )
+        )
+        return True
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            gameId = int(request.args["gameId"][0])
+            token = request.args["token"][0]
+            winnerId = request.args["winnerId"][0]
+            result = self.cp.runInteraction(
+                self.endGame, gameId, token, winnerId
+            )
+            result.addCallback(self.gameEnded, request)
+            return NOT_DONE_YET 
+        except:
+            return json.dumps({"error" : "not all arguments set"})
