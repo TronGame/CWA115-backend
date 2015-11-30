@@ -70,21 +70,14 @@ class RemoveGame(Resource):
         except KeyError:
             return json.dumps({"error" : "no token given"})
 
-        if "name" in request.args:
-            name = request.args["name"][0]
-            result = self.cp.runQuery(
-                "delete from games where name = ? and token = ?", (name, Utility.hashToken(token))
-            )
-            result.addCallback(self.gameRemoved, request, token)
-            return NOT_DONE_YET 
-        elif "id" in request.args: 
+        try:
             identifier = request.args["id"][0]
             result = self.cp.runQuery(
-                "delete from games where id = ? and token = ?", (identifier, token)
+                "delete from games where id = ? and token = ?", (identifier, Utility.hashToken(token))
             )
             result.addCallback(self.gameRemoved, request, token)
             return NOT_DONE_YET
-        else:
+        except KeyError:
             return json.dumps({"error" : "id or name required"})
 
 class StartGame(Resource):
