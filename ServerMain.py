@@ -1,3 +1,4 @@
+from twisted.web.static import File
 from twisted.web.server import Site
 from twisted.web.resource import Resource
 from twisted.internet import reactor
@@ -103,6 +104,8 @@ root.putChild("showInvites", Lobby.ShowInvites(cp))
 # For debugging purposes only:
 root.putChild("showAll", Accounts.ShowAll(cp))
 #root.putChild("clearAll", Accounts.ShowAll(cp))
+
+root.putChild("panel", File("panel.html"))
 
 factory = Site(root)
 reactor.listenTCP(8880, factory)
