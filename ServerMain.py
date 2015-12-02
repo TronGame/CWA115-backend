@@ -35,6 +35,7 @@ def createDatabase():
             ping integer,
             token text,
             wallbreaker integer,
+            timeLimit integer,
             hasStarted integer default 0,
             winner integer
         )
