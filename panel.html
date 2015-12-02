@@ -40,6 +40,7 @@ function initMap() {
 }
 
 var players = {};
+var walls = {};
 
 function handleMessage(data) {
     switch(data['type']) {
@@ -56,7 +57,22 @@ function handleMessage(data) {
                 players[data.playerId].setPosition(newPosition);
             }
             break;
-
+        case 'createWall':
+            // TODO: fix this on the Java side (send a hex string instead of a signed integer)
+            colorValue = (data.color > 0) ? data.color : 4294967296 + data.color;
+            walls[data.wallId] = new google.maps.Polyline({
+                path : [],
+                strokeColor : '#' + colorValue.toString(16),
+                strokeOpacity : 1.0,
+                strokeWeight : 15,
+                map : map
+            });
+            break;
+        case 'updateWall':
+            // Walls that were created before joining cannot be displayed
+            if(walls.hasOwnProperty(data.wallId))
+                walls[data.wallId].getPath().push(new google.maps.LatLng(data.point.latitude, data.point.longitude));
+            break;
     }
 }
 
