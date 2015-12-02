@@ -338,3 +338,100 @@ class EndGame(Resource):
             return NOT_DONE_YET 
         except:
             return json.dumps({"error" : "not all arguments set"})
+
+class AddInvite(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def addInvite(self, interaction, id, token, friends, gameId):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        for friend in friends:
+            interaction.execute("insert or ignore into invites (inviterId, inviteeId, gameId) values (?,?,?)",(id, friend, gameId))
+
+        return True
+
+    def inviteAdded(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            friends = json.loads(request.args["friends"][0])
+            gameId = request.args["gameId"][0]
+            self.__cp.runInteraction(self.addInvite, id, token, friends, gameId).addCallback(self.inviteAdded, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class DeleteInvite(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def deleteInvite(self, interaction, id, token, inviteId):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        interaction.execute("delete from invites where id=?",(inviteId,))
+
+        return True
+
+    def inviteDeleted(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            inviteId = request.args["inviteId"][0]
+            self.__cp.runInteraction(self.deleteInvite, id, token, inviteId).addCallback(self.inviteDeleted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class ShowInvites(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def showInvites(self, interaction, id, token):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        interaction.execute("select id, inviterId, gameId from invites where inviteeId=?",(id,))
+        invites = interaction.fetchall()
+        result = []
+        for invite in invites:
+            result.append(json.dumps({"inviteId" : invite[0], "inviterId" : invite[1], "gameId" : invite[2]}))
+        return result
+
+    def invitesShown(self, result, request):
+        request.write(json.dumps({"invites" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            self.__cp.runInteraction(self.showInvites, id, token).addCallback(self.invitesShown, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})

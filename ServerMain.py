@@ -13,10 +13,14 @@ def createDatabase():
         """
         create table if not exists accounts (
             id integer primary key autoincrement,
+            token text,
+            facebookId integer,
             name text,
             pictureUrl text,
-            facebookId integer,
-            token text,
+            wins integer default 0,
+            losses integer default 0,
+            highscore integer default 0,
+            playtime integer default 0,
             currentGame integer default 0
         )
         """
@@ -41,7 +45,19 @@ def createDatabase():
         create table if not exists friends (
             id integer primary key autoincrement,
             userId1 integer,
-            userId2 integer
+            userId2 integer,
+            pending integer default 1,
+            commonPlays integer default 0
+        )
+        """
+    )
+    cp.runQuery(
+        """
+        create table if not exists invites (
+            id integer primary key autoincrement,
+            inviterId integer,
+            inviteeId integer,
+            gameId integer
         )
         """
     )
@@ -71,6 +87,17 @@ root.putChild("leaveGame", Lobby.LeaveGame(cp))
 root.putChild("endGame", Lobby.EndGame(cp))
 root.putChild("getFriendIds", Accounts.GetFriendIds(cp))
 root.putChild("scoreboard", Accounts.ScoreBoard(cp))
+root.putChild("increaseWins", Accounts.IncreaseWins(cp))
+root.putChild("increaseLosses", Accounts.IncreaseLosses(cp))
+root.putChild("increaseCommonPlays", Accounts.IncreaseCommonPlays(cp))
+root.putChild("setHighscore", Accounts.SetHighscore(cp))
+root.putChild("setPlaytime", Accounts.SetPlaytime(cp))
+root.putChild("addFriends", Accounts.AddFriends(cp))
+root.putChild("deleteFriend", Accounts.DeleteFriend(cp))
+root.putChild("acceptFriend", Accounts.AcceptFriend(cp))
+root.putChild("addInvite", Lobby.AddInvite(cp))
+root.putChild("deleteInvite", Lobby.DeleteInvite(cp))
+root.putChild("showInvites", Lobby.ShowInvites(cp))
 
 # For debugging purposes only:
 root.putChild("showAll", Accounts.ShowAll(cp))

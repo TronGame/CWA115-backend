@@ -24,7 +24,7 @@ class InsertAccount(Resource):
 
             for friend in friends:
                 interaction.execute(
-                    "insert or ignore into friends (id,userId1,userId2) values (null,?,?)", (userId, friend)
+                    "insert or ignore into friends (id,userId1,userId2,pending) values (null,?,?,0)", (userId, friend)
                 )
 
             return userId
@@ -57,16 +57,25 @@ class ShowAccount(Resource):
     def __init__(self,cp):
         Resource.__init__(self)
         self.__cp = cp
-        self.__account = None
 
-    def accountSelected(self, result, request):
+    def accountSelected(self, result, request, authorized):
         if not result:
             request.write(json.dumps({"error" : "profile not found"}))
             request.finish()
         else:
             id = request.args["id"][0]
-            newResult = self.__cp.runQuery("select userId1, userId2 from friends where userId1=? or userId2=?", (id, id))
-            newResult.addCallback(self.friendsSelected, request, result[0])
+            if authorized:
+                newResult = self.__cp.runQuery("select userId1, userId2, pending, commonPlays from friends where userId1=? or userId2=?", (id, id))
+                newResult.addCallback(self.friendsSelected, request, result[0])
+            else:
+                request.write(json.dumps({"id" : result[0][0],
+                                          "facebookId" : result[0][1],
+                                          "name" : result[0][2],
+                                          "pictureUrl" : result[0][3],
+                                          "wins" : result[0][4],
+                                          "losses" : result[0][5],
+                                          "highscore" : result[0][6]}))
+                request.finish()
 
     def friendsSelected(self, result, request, account):
         if not result:
@@ -75,20 +84,31 @@ class ShowAccount(Resource):
         friends = []
         for entry in result:
             if int(entry[0])==int(userId):
-                friends.append(entry[1])
+                friends.append(json.dumps({"id" : entry[1], "accepted" : entry[2], "commonPlays" : entry[3]}))
             else:
-                friends.append(entry[0])
-        request.write(json.dumps({"id" : account[0], "name" : account[1], "pictureUrl" : account[2], "friends" : friends}))
+                friends.append(json.dumps({"id" : entry[0], "pending" : entry[2], "commonPlays" : entry[3]}))
+        request.write(json.dumps({"id" : account[0],
+                                  "facebookId" : account[1],
+                                  "name" : account[2],
+                                  "pictureUrl" : account[3],
+                                  "wins" : account[4],
+                                  "losses" : account[5],
+                                  "highscore" : account[6],
+                                  "playtime" : account[7],
+                                  "friends" : friends}))
         request.finish()
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
         try:
-            self.__account = None # Reset account value
             id = request.args["id"][0]
-            token = request.args["token"][0]
-            result = self.__cp.runQuery("select id, name, pictureUrl from accounts where id = ? and token = ?", (id, Utility.hashToken(token)))
-            result.addCallback(self.accountSelected, request)
+            token = request.args.get("token",[None])[0]
+            if token is None:
+                result = self.__cp.runQuery("select id, facebookId, name, pictureUrl, wins, losses, highscore from accounts where id = ?", (id,))
+                result.addCallback(self.accountSelected, request, False)
+            else:
+                result = self.__cp.runQuery("select id, facebookId, name, pictureUrl, wins, losses, highscore, playtime from accounts where id = ? and token = ?", (id, Utility.hashToken(token)))
+                result.addCallback(self.accountSelected, request, True)
             return NOT_DONE_YET 
         except KeyError:
             return json.dumps({"error" : "not all arguments set"})
@@ -99,7 +119,7 @@ class UpdateAccount(Resource):
         Resource.__init__(self)
         self.__cp = cp
 
-    def updateAccount(self, interaction, id, token, newName, newPictureUrl, newFriends):
+    def updateAccount(self, interaction, id, token, newName, newPictureUrl):
         interaction.execute("select token from accounts where id = ?", (id, ))
         result = interaction.fetchone()
         if result is None or not Utility.checkToken(token, result[0]):
@@ -109,13 +129,6 @@ class UpdateAccount(Resource):
             interaction.execute("update accounts set name=? where id=?",(newName,id))
         if newPictureUrl is not None:
             interaction.execute("update accounts set pictureUrl=? where id=?",(newPictureUrl,id))
-        if newFriends is not None:
-            newFriends = json.loads(newFriends)
-            # First delete previous friend records
-            interaction.execute("delete from friends where userId1=? or userId2=?",(id,id))
-            # Then insert new friends
-            for friend in newFriends:
-                interaction.execute("insert or ignore into friends (id,userId1,userId2) values (null,?,?)",(id,friend))
 
         return True
 
@@ -130,8 +143,7 @@ class UpdateAccount(Resource):
             token = request.args["token"][0]
             newName = request.args.get("name",[None])[0]
             newPictureUrl = request.args.get("pictureUrl",[None])[0]
-            newFriends = request.args.get("friends",[None])[0]
-            result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl, newFriends)
+            result = self.__cp.runInteraction(self.updateAccount, id, token, newName, newPictureUrl)
             result.addCallback(self.accountUpdated, request)
             return NOT_DONE_YET
         except KeyError:
@@ -149,7 +161,13 @@ class ShowAll(Resource):
         else:
             results = dict()
             for entry in result:
-                results[entry[0]] = {"name" : entry[1], "pictureUrl" : entry[2], "facebookId" : entry[3]}
+                results[entry[0]] = {"name" : entry[3],
+                                     "pictureUrl" : entry[4],
+                                     "facebookId" : entry[2],
+                                     "wins" : entry[5],
+                                     "losses" : entry[6],
+                                     "highscore" : entry[7],
+                                     "playtime" : entry[8]}
             request.write(json.dumps({"accounts" : results}))
         self.__cp.runQuery("select * from friends").addCallback(self.friendsSelected, request)
 
@@ -159,7 +177,7 @@ class ShowAll(Resource):
         else:
             results = dict()
             for entry in result:
-                results[entry[0]] = {"userId1" : entry[1], "userId2" : entry[2]}
+                results[entry[0]] = {"userId1" : entry[1], "userId2" : entry[2], "pending" : entry[3], "commonPlays" : entry[4]}
             request.write(json.dumps({"friends" : results }))
         request.finish()
 
@@ -279,4 +297,212 @@ class ScoreBoard(Resource):
         request.defaultContentType = "application/json"
         result = self.cp.runInteraction(self.selectPlayerScores)
         result.addCallback(self.scoresSelected, request)
-        return NOT_DONE_YET 
+        return NOT_DONE_YET
+
+class IncreaseWins(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def winsIncreased(self, result, request):
+        request.write(json.dumps({"success" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            self.__cp.runQuery("update accounts set wins = wins + 1 where id=? and token=?",(id, Utility.hashToken(token))).addCallback(self.winsIncreased, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class IncreaseLosses(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def lossesIncreased(self, result, request):
+        request.write(json.dumps({"success" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            self.__cp.runQuery("update accounts set losses = losses + 1 where id=? and token=?",(id, Utility.hashToken(token))).addCallback(self.lossesIncreased, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class IncreaseCommonPlays(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def commonPlaysIncreased(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def increaseCommonPlays(self, interaction, userId, token, friendId):
+        interaction.execute("select token from accounts where id = ?", (userId, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+        interaction.execute("update friends set commonPlays = commonPlays + 1 where userId1=? and userId2=?",(userId, friendId))
+
+        return True
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            friendId = request.args["friendId"][0]
+            self.__cp.runInteraction(self.increaseCommonPlays, id, token, friendId).addCallback(self.commonPlaysIncreased, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class SetHighscore(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def highscoreUpdated(self, result, request):
+        request.write(json.dumps({"success" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            highscore = int(request.args["highscore"][0])
+            self.__cp.runQuery("update accounts set highscore = ? where id=? and token=?",(highscore, id, Utility.hashToken(token))).addCallback(self.highscoreUpdated, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class SetPlaytime(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def playtimeUpdated(self, result, request):
+        request.write(json.dumps({"success" : True}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            playtime = int(request.args["playtime"][0])
+            self.__cp.runQuery("update accounts set playtime = ? where id=? and token=?",(playtime, id, Utility.hashToken(token))).addCallback(self.playtimeUpdated, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class AddFriends(Resource): #userId1 is the one who sent the friend request
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def addFriends(self, interaction, id, token, friends, pending):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        for friend in friends:
+            interaction.execute("insert or ignore into friends (userId1, userId2, pending) values (?,?,?)",(id, friend, pending))
+
+        return True
+
+    def friendsAdded(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            friends = json.loads(request.args["friends"][0])
+            pending = 1-int(request.args.get("accepted",[0])[0])
+            self.__cp.runInteraction(self.addFriends, id, token, friends, pending).addCallback(self.friendsAdded, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class DeleteFriend(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def deleteFriend(self, interaction, id, token, friend):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        interaction.execute("delete from friends where (userId1=? and userId2=?) or (userId1=? and userId2=?)",(id, friend, friend, id))
+
+        return True
+
+    def friendDeleted(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            friend = request.args["friendId"][0]
+            self.__cp.runInteraction(self.deleteFriend, id, token, friend).addCallback(self.friendDeleted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
+
+class AcceptFriend(Resource):
+
+    def __init__(self,cp):
+        Resource.__init__(self)
+        self.__cp = cp
+
+    def acceptFriend(self, interaction, id, token, friend):
+        interaction.execute("select token from accounts where id = ?", (id, ))
+        realToken = interaction.fetchone()
+        if realToken is None or not Utility.checkToken(token, realToken[0]):
+            return False
+
+        interaction.execute("update friends set pending = 0 where userId1=? and userId2=?",(friend, id))
+        # Only the other player (userId2) can accept the pending friend request
+
+        return True
+
+    def friendAccepted(self, result, request):
+        request.write(json.dumps({"success" : result}))
+        request.finish()
+
+    def render_GET(self, request):
+        request.defaultContentType = "application/json"
+        try:
+            id = request.args["id"][0]
+            token = request.args["token"][0]
+            friend = request.args["friendId"][0]
+            self.__cp.runInteraction(self.acceptFriend, id, token, friend).addCallback(self.friendAccepted, request)
+            return NOT_DONE_YET
+        except KeyError:
+            return json.dumps({"error" : "not all arguments set"})
