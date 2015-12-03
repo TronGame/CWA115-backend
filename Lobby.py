@@ -45,7 +45,7 @@ class InsertGame(Resource):
             owner = int(request.args["owner"][0])
             maxPlayers = int(request.args["maxPlayers"][0])
             wallbreaker = int(request.args["canBreakWall"][0])
-            timeLimit = int(request.args.get("timeLimit", [0])[0])
+            timeLimit = int(request.args.get("timeLimit", [-1])[0])
             token = Utility.makeRandomToken(self.rbg)
             result = self.cp.runInteraction(
                 self.insertGame, name, owner, maxPlayers, token,
