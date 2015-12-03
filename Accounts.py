@@ -84,7 +84,7 @@ class ShowAccount(Resource):
         friends = []
         for entry in result:
             if int(entry[0])==int(userId):
-                friends.append(json.dumps({"id" : entry[1], "accepted" : entry[2], "commonPlays" : entry[3]}))
+                friends.append(json.dumps({"id" : entry[1], "accepted" : 1-int(entry[2]), "commonPlays" : entry[3]}))
             else:
                 friends.append(json.dumps({"id" : entry[0], "pending" : entry[2], "commonPlays" : entry[3]}))
         request.write(json.dumps({"id" : account[0],
