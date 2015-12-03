@@ -277,7 +277,7 @@ class ScoreBoard(Resource):
     def selectPlayerScores(self, interaction):
         interaction.execute("select id, name from accounts")
         result = []
-        for account in interaction:
+        for account in interaction.fetchall():
             interaction.execute("select count() from games where winner = ?", (account[0], ))
             gamesWon = interaction.fetchone()
             gamesWon = 0 if gamesWon is None else gamesWon[0]
