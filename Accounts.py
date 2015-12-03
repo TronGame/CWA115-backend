@@ -281,7 +281,7 @@ class ScoreBoard(Resource):
             interaction.execute("select count() from games where winner = ?", (account[0], ))
             gamesWon = interaction.fetchone()
             gamesWon = 0 if gamesWon is None else gamesWon[0]
-            result.append((account[0], account[1], gamesWon))
+            result.append((account[0], account[1], account[2], gamesWon))
 
         return sorted(result, cmp = lambda x, y : cmp(y[-1], x[-1]))
 
