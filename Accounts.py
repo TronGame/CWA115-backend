@@ -275,7 +275,7 @@ class ScoreBoard(Resource):
         self.cp = cp
 
     def selectPlayerScores(self, interaction):
-        interaction.execute("select id, name from accounts")
+        interaction.execute("select id, name, pictureUrl from accounts")
         result = []
         for account in interaction.fetchall():
             interaction.execute("select count() from games where winner = ?", (account[0], ))
@@ -289,7 +289,8 @@ class ScoreBoard(Resource):
         request.write(json.dumps([{
             "id"           : int(row[0]),
             "name"         : row[1],
-            "gamesWon"     : int(row[2]),
+            "pictureUrl"   : row[2],
+            "gamesWon"     : int(row[3]),
         } for row in result]))
         request.finish()
 
