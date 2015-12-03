@@ -23,6 +23,8 @@
     var apiKey = 'AIzaSyBSq4XPiG21Ni6mmiVAnAd_DxDiIjKP9G4';
     var map;
     var socket;
+	var startTime;
+	var serverPushUrl = "";
 
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
@@ -31,10 +33,15 @@
         });
         gameId = window.prompt('Game id?', '1');
         socket = io('http://daddi.cs.kuleuven.be', {path : '/peno3/socket.io'});
+		
+		startTime = Date.now();
 
         socket.emit('register', {groupid : 'testA1', sessionid : gameId});
 
         socket.on('broadcastReceived', function(data) {
+			var xhttp = new XMLHttpRequest();
+			xhttp.open("GET", serverPushUrl + "?data=" + JSON.stringify(data) + "&time=" + (Date.now()-startTime), true);
+			xhttp.send();
             console.log(data);
             handleMessage(data);
         });
