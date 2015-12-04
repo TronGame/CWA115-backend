@@ -1,6 +1,9 @@
 var players = {};
 var walls = {};
 
+var bikeIcon = {url : 'icons/bike.png', scaledSize : {width : 48, height : 48}};
+var bikeBellIcon = {url : 'icons/bikeWithBell.png', scaledSize : {width : 48, height : 48}};
+
 function handleMessage(data) {
     switch(data['type']) {
         case 'updatePosition':
@@ -9,7 +12,8 @@ function handleMessage(data) {
                 players[data.playerId] =  new google.maps.Marker({
                     position : newPosition,
                     map: map,
-                    title: data.playerName
+                    title: data.playerName,
+                    icon: bikeIcon
                 });
             } else {
                 // Update the marker position
@@ -37,12 +41,18 @@ function handleMessage(data) {
                 runSnapToRoad(data.wallId)
             }
             break;
+        case 'ringBell':
+            if(players.hasOwnProperty(data.playerId)) {
+                players[data.playerId].setIcon(bikeBellIcon);
+                setTimeout(function() { players[data.playerId].setIcon(bikeIcon); }, 3000);
+            }
+            break;
     }
 }
 
 // Snap a user-created polyline to roads and draw the snapped path
 function runSnapToRoad(wallId) {
-    var path = walls[data.wallId].getPath();
+    var path = walls[wallId].getPath();
     var pathValues = [];
     for (var i = 0; i < path.getLength(); i++) {
         pathValues.push(path.getAt(i).toUrlValue());

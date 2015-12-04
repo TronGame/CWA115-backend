@@ -106,6 +106,11 @@ root.putChild("showAll", Accounts.ShowAll(cp))
 #root.putChild("clearAll", Accounts.ShowAll(cp))
 
 root.putChild("panel", File("panel.html"))
+root.putChild("panel.js", File("panel.js"))
+icons = Resource()
+icons.putChild("bike.png", File("icons/bike.png"))
+icons.putChild("bikeWithBell.png", File("icons/bikeWithBell.png"))
+root.putChild("icons", icons)
 
 factory = Site(root)
 reactor.listenTCP(8880, factory)
