@@ -150,7 +150,7 @@ class ListGames(Resource):
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        listStarted = bool(request.args.get("listStarted", [False])[0])
+        listStarted = bool(int(request.args.get("listStarted", [0])[0]))
         result = self.cp.runInteraction(self.selectGameInfo, listStarted)
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
