@@ -398,7 +398,7 @@ class DeleteInvite(Resource):
         if realToken is None or not Utility.checkToken(token, realToken[0]):
             return False
 
-        interaction.execute("delete from invites where id=?",(inviteId,))
+        interaction.execute("delete from invites where id=? and inviteeId=?",(inviteId, id))
 
         return True
 
