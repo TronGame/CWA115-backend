@@ -115,12 +115,13 @@ class ListGames(Resource):
         Resource.__init__(self)
         self.cp = cp
 
-    def selectGameInfo(self, interaction):
+    def selectGameInfo(self, interaction, listStarted):
+        postfix = "where hasStarted = 0" if not listStarted else ""
         interaction.execute(
             """
             select id, name, owner, maxPlayers, wallbreaker, timeLimit, maxDist
-            from games where hasStarted = 0
-            """
+            from games
+            """ + postfix
         )
         gameInfo = interaction.fetchall()
         result = []
@@ -149,7 +150,8 @@ class ListGames(Resource):
 
     def render_GET(self, request):
         request.defaultContentType = "application/json"
-        result = self.cp.runInteraction(self.selectGameInfo)
+        listStarted = bool(request.args.get("listStarted", [False])[0])
+        result = self.cp.runInteraction(self.selectGameInfo, listStarted)
         result.addCallback(self.gameSelected, request)
         return NOT_DONE_YET 
 
