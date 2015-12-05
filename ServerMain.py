@@ -37,6 +37,7 @@ def createDatabase():
             token text,
             wallbreaker integer,
             timeLimit integer,
+            maxDist float, 
             hasStarted integer default 0,
             winner integer
         )

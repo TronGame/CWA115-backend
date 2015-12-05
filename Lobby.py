@@ -13,7 +13,9 @@ class InsertGame(Resource):
         self.cp = cp
         self.rbg = random.SystemRandom()
 
-    def insertGame(self, interaction, name, owner, maxPlayers, token, playerToken, wallbreaker, timeLimit):
+    def insertGame(self, interaction, name, owner, maxPlayers, token, playerToken,
+        wallbreaker, timeLimit, maxDist):
+
         interaction.execute("select token from accounts where id = ?", (owner, ))
         realToken = interaction.fetchone()
         if realToken is None or not Utility.checkToken(playerToken, realToken[0]):
@@ -21,10 +23,12 @@ class InsertGame(Resource):
 
         interaction.execute(
             """
-            insert or ignore into games (name, owner, maxPlayers, ping, token, wallbreaker, timeLimit)
-            values (?, ?, ?, 0, ?, ?, ?)
+            insert or ignore into games (
+                name, owner, maxPlayers, ping, token, wallbreaker, timeLimit, maxDist
+            )
+            values (?, ?, ?, 0, ?, ?, ?, ?)
             """,
-            (name, owner, maxPlayers, Utility.hashToken(token), wallbreaker, timeLimit)
+            (name, owner, maxPlayers, Utility.hashToken(token), wallbreaker, timeLimit, maxDist)
         )
         interaction.execute("select max(id) from games")
         return interaction.fetchone()[0]
@@ -46,10 +50,11 @@ class InsertGame(Resource):
             maxPlayers = int(request.args["maxPlayers"][0])
             wallbreaker = int(request.args["canBreakWall"][0])
             timeLimit = int(request.args.get("timeLimit", [-1])[0])
+            maxDist = float(request.args.get("maxDist", [-1])[0])
             token = Utility.makeRandomToken(self.rbg)
             result = self.cp.runInteraction(
                 self.insertGame, name, owner, maxPlayers, token,
-                playerToken, wallbreaker, timeLimit
+                playerToken, wallbreaker, timeLimit, maxDist
             )
             result.addCallback(self.gameInserted, request, token)
             return NOT_DONE_YET 
@@ -112,7 +117,10 @@ class ListGames(Resource):
 
     def selectGameInfo(self, interaction):
         interaction.execute(
-            "select id, name, owner, maxPlayers, wallbreaker, timeLimit from games where hasStarted = 0"
+            """
+            select id, name, owner, maxPlayers, wallbreaker, timeLimit, maxDist
+            from games where hasStarted = 0
+            """
         )
         gameInfo = interaction.fetchall()
         result = []
@@ -134,7 +142,8 @@ class ListGames(Resource):
             "maxPlayers"   : int(row[3]),
             "canBreakWall" : int(row[4]),
             "timeLimit"    : int(row[5]),
-            "ownerName"    : row[6]
+            "maxDist"      : float(row[6]),
+            "ownerName"    : row[7]
         } for row in result]))
         request.finish()
 
