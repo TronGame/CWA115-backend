@@ -1,3 +1,8 @@
+var socket;
+var startTime;
+var msgLog = []; 
+var gameId = null;
+
 var players = {};
 var walls = {};
 
@@ -79,4 +84,65 @@ function processSnapToRoadResponse(data) {
         snappedCoordinates.push(latlng);
     }
     return snappedCoordinates;
+}
+
+function saveGame() {
+    var gameData = new Blob([JSON.stringify(msgLog)], {type : 'text/plain'});
+    window.open(URL.createObjectURL(gameData));
+}
+
+function setGame() {
+    gameId = window.prompt('Game id?', '1');
+
+    // Start listening
+    socket = io('http://daddi.cs.kuleuven.be', {path : '/peno3/socket.io'});
+		
+    startTime = Date.now();
+
+    socket.emit('register', {groupid : 'testA1', sessionid : gameId});
+
+    socket.on('broadcastReceived', function(data) {
+        console.log(data);
+        msgLog.push({data : data, time : Date.now() - startTime});
+        handleMessage(data);
+    });
+}
+
+function showFileDialog() {
+    document.getElementById('loadDialog').click();
+}
+
+function loadGame(path) {
+    if(path.files && path.files[0]) { 
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            emulateGame(JSON.parse(e.target.result));
+        };
+        reader.readAsText(path.files[0]);
+    }
+}
+
+function emulateGame(gameData) {
+    var speedUp = window.prompt('Speed up?', '1.0');
+    for(var i = 0; i < gameData.length; ++i) {
+        setTimeout(function(data) {
+            handleMessage(data);
+        }, gameData[i].time / speedUp, gameData[i].data);
+    }
+}
+
+function clearGame() {
+    // Remove markers from the map
+    for(var k in players) {
+        if(players.hasOwnProperty(k))
+            players[k].setMap(null);
+    }
+    for(var k in walls) {
+        if(walls.hasOwnProperty(k))
+            walls[k].setMap(null);
+    }
+    players = {};
+    walls = {};
+    msgLog = [];
+    startTime = Date.now();
 }
