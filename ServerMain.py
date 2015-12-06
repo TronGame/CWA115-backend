@@ -5,7 +5,7 @@ from twisted.internet import reactor
 
 from twisted.enterprise import adbapi
 
-import Lobby, Accounts
+import Games, Accounts
 
 cp = adbapi.ConnectionPool("sqlite3", "trongame.db", check_same_thread = False)
 
@@ -30,7 +30,7 @@ def createDatabase():
         """
         create table if not exists games (
             id integer primary key autoincrement,
-            name text unique,
+            name text,
             owner integer,
             maxPlayers integer,
             ping integer,
@@ -76,17 +76,17 @@ root.putChild("updateAccount", Accounts.UpdateAccount(cp))
 root.putChild("deleteAccount", Accounts.DeleteAccount(cp))
 # name => (string) Room name ; token => (integer) Owner's token ; owner => (integer) userId of owner ; maxPlayers =>
 # (integer) Maximum number of players ; tokenLength => (integer) length of token to be created (default=25)
-root.putChild("insertGame", Lobby.InsertGame(cp))
+root.putChild("insertGame", Games.InsertGame(cp))
 # id => (integer) Room id OR name => (string) Room name ; token => (integer) Room token
-root.putChild("deleteGame", Lobby.RemoveGame(cp))
+root.putChild("deleteGame", Games.RemoveGame(cp))
 # gameId => (integer) Room id ; id => (integer) Player id ; token => (integer) Player token
-root.putChild("startGame", Lobby.StartGame(cp))
-root.putChild("joinGame", Lobby.JoinGame(cp))
-root.putChild("listGames", Lobby.ListGames(cp))
-root.putChild("showGame", Lobby.ShowGame(cp))
-root.putChild("kickPlayer", Lobby.KickPlayer(cp))
-root.putChild("leaveGame", Lobby.LeaveGame(cp))
-root.putChild("endGame", Lobby.EndGame(cp))
+root.putChild("startGame", Games.StartGame(cp))
+root.putChild("joinGame", Games.JoinGame(cp))
+root.putChild("listGames", Games.ListGames(cp))
+root.putChild("showGame", Games.ShowGame(cp))
+root.putChild("kickPlayer", Games.KickPlayer(cp))
+root.putChild("leaveGame", Games.LeaveGame(cp))
+root.putChild("endGame", Games.EndGame(cp))
 root.putChild("getFriendIds", Accounts.GetFriendIds(cp))
 root.putChild("scoreboard", Accounts.ScoreBoard(cp))
 root.putChild("increaseCommonPlays", Accounts.IncreaseCommonPlays(cp))
@@ -95,9 +95,9 @@ root.putChild("setPlaytime", Accounts.SetPlaytime(cp))
 root.putChild("addFriends", Accounts.AddFriends(cp))
 root.putChild("deleteFriend", Accounts.DeleteFriend(cp))
 root.putChild("acceptFriend", Accounts.AcceptFriend(cp))
-root.putChild("addInvite", Lobby.AddInvite(cp))
-root.putChild("deleteInvite", Lobby.DeleteInvite(cp))
-root.putChild("showInvites", Lobby.ShowInvites(cp))
+root.putChild("addInvite", Games.AddInvite(cp))
+root.putChild("deleteInvite", Games.DeleteInvite(cp))
+root.putChild("showInvites", Games.ShowInvites(cp))
 
 # For debugging purposes only:
 root.putChild("showAll", Accounts.ShowAll(cp))
