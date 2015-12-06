@@ -275,22 +275,18 @@ class ScoreBoard(Resource):
         self.cp = cp
 
     def selectPlayerScores(self, interaction):
-        interaction.execute("select id, name, pictureUrl from accounts")
+        interaction.execute("select id, name, pictureUrl, losses, wins from accounts")
         result = []
-        for account in interaction.fetchall():
-            interaction.execute("select count() from games where winner = ?", (account[0], ))
-            gamesWon = interaction.fetchone()
-            gamesWon = 0 if gamesWon is None else gamesWon[0]
-            result.append((account[0], account[1], account[2], gamesWon))
 
-        return sorted(result, cmp = lambda x, y : cmp(y[-1], x[-1]))
+        return sorted(interaction.fetchall(), cmp = lambda x, y : cmp(y[-1], x[-1]))
 
     def scoresSelected(self, result, request):
         request.write(json.dumps([{
             "id"           : int(row[0]),
             "name"         : row[1],
             "pictureUrl"   : row[2],
-            "gamesWon"     : int(row[3]),
+            "gamesLost"    : int(row[3]),
+            "gamesWon"     : int(row[4])
         } for row in result]))
         request.finish()
 
@@ -299,46 +295,6 @@ class ScoreBoard(Resource):
         result = self.cp.runInteraction(self.selectPlayerScores)
         result.addCallback(self.scoresSelected, request)
         return NOT_DONE_YET
-
-class IncreaseWins(Resource):
-
-    def __init__(self,cp):
-        Resource.__init__(self)
-        self.__cp = cp
-
-    def winsIncreased(self, result, request):
-        request.write(json.dumps({"success" : True}))
-        request.finish()
-
-    def render_GET(self, request):
-        request.defaultContentType = "application/json"
-        try:
-            id = request.args["id"][0]
-            token = request.args["token"][0]
-            self.__cp.runQuery("update accounts set wins = wins + 1 where id=? and token=?",(id, Utility.hashToken(token))).addCallback(self.winsIncreased, request)
-            return NOT_DONE_YET
-        except KeyError:
-            return json.dumps({"error" : "not all arguments set"})
-
-class IncreaseLosses(Resource):
-
-    def __init__(self,cp):
-        Resource.__init__(self)
-        self.__cp = cp
-
-    def lossesIncreased(self, result, request):
-        request.write(json.dumps({"success" : True}))
-        request.finish()
-
-    def render_GET(self, request):
-        request.defaultContentType = "application/json"
-        try:
-            id = request.args["id"][0]
-            token = request.args["token"][0]
-            self.__cp.runQuery("update accounts set losses = losses + 1 where id=? and token=?",(id, Utility.hashToken(token))).addCallback(self.lossesIncreased, request)
-            return NOT_DONE_YET
-        except KeyError:
-            return json.dumps({"error" : "not all arguments set"})
 
 class IncreaseCommonPlays(Resource):
 

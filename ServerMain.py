@@ -38,8 +38,7 @@ def createDatabase():
             wallbreaker integer,
             timeLimit integer,
             maxDist float, 
-            hasStarted integer default 0,
-            winner integer
+            hasStarted integer default 0
         )
         """
     )

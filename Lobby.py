@@ -330,13 +330,22 @@ class EndGame(Resource):
         if realToken is None or not Utility.checkToken(token, realToken[0]):
             return False
 
-        # TODO: do not allow winning if winnerId == ownerId?
+        # Increase the wins of the winner
+        interaction.execute(
+            "update accounts set wins = wins + 1, currentGame = 0 where id = ?",
+            (winnerId, )
+        )
+        # Increase the losses of all other players in the game
         interaction.execute(
             """
-            update or ignore games set winner = ? where id = ?
+            update accounts set losses = losses + 1, currentGame = 0 where id = 
+            (select id from accounts where currentGame = ?) and id != ? 
             """,
-            (winnerId, gameId, )
+            (gameId, winnerId)
         )
+
+        # TODO: do we want to permanently remove the game?
+        # interaction.execute("delete from games where id = ?", (gameId,))
         return True
 
     def render_GET(self, request):
