@@ -38,7 +38,6 @@ function handleMessage(data) {
                 strokeWeight : 15,
                 map : map
             });
-            runSnapToRoad(data.wallId)
             break;
         case 'updateWall':
             // Walls that were created before joining cannot be displayed
@@ -46,7 +45,6 @@ function handleMessage(data) {
                 walls[data.wallId].getPath().push(
                     new google.maps.LatLng(data.point.latitude, data.point.longitude)
                 );
-                runSnapToRoad(data.wallId)
             }
             break;
         case 'ringBell':
@@ -56,37 +54,6 @@ function handleMessage(data) {
             }
             break;
     }
-}
-
-// Snap a user-created polyline to roads and draw the snapped path
-function runSnapToRoad(wallId) {
-    var path = walls[wallId].getPath();
-    var pathValues = [];
-    for (var i = 0; i < path.getLength(); i++) {
-        pathValues.push(path.getAt(i).toUrlValue());
-    }
-
-    var request = new XMLHttpRequest();
-    request.open(
-        'GET', 'https://roads.googleapis.com/v1/snapToRoads?interpolate=true&key='
-         + apiKey + '&path=' + pathValues.join('|'),
-        function(data) {
-            walls[wallId].setPath(processSnapToRoadResponse(data));
-        }
-    );
-}
-
-// Store snapped polyline returned by the snap-to-road method.
-function processSnapToRoadResponse(data) {
-    var snappedCoordinates = [];
-    for (var i = 0; i < data.snappedPoints.length; i++) {
-        var latlng = new google.maps.LatLng(
-            data.snappedPoints[i].location.latitude,
-            data.snappedPoints[i].location.longitude
-        );
-        snappedCoordinates.push(latlng);
-    }
-    return snappedCoordinates;
 }
 
 function saveGame() {
@@ -138,7 +105,7 @@ function emulateGame(gameData) {
 }
 
 function sendNext() {
-    if(paused)
+    if(paused || currentGame.i >= currentGame.data.length)
         return;
 
     handleMessage(currentGame.data[currentGame.i].data);
