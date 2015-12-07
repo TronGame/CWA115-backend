@@ -106,6 +106,8 @@ function setGame() {
         msgLog.push({data : data, time : Date.now() - startTime});
         handleMessage(data);
     });
+
+    toastr.success('Game set.');
 }
 
 function showFileDialog() {
@@ -145,4 +147,5 @@ function clearGame() {
     walls = {};
     msgLog = [];
     startTime = Date.now();
+    toastr.success('Map cleared.');
 }
