@@ -5,6 +5,7 @@ var gameId = null;
 
 var players = {};
 var walls = {};
+var border;
 
 var bikeIcon = {url : 'icons/bike.png', scaledSize : {width : 48, height : 48}};
 var bikeBellIcon = {url : 'icons/bikeWithBell.png', scaledSize : {width : 48, height : 48}};
@@ -28,6 +29,13 @@ function handleMessage(data) {
                 players[data.playerId].setPosition(newPosition);
             }
             break;
+        case 'playerDead':
+            if (data.playerKillerId == "")
+                toastr.error("Player "+data.playerName+", has died.");
+            else {
+                toastr.error("Player "+data.playerName+ ", was killed by "+data.playerKillerName);
+            }
+            break;
         case 'createWall':
             // TODO: fix this on the Java side (send a hex string instead of a signed integer)
             var colorValue = (data.color > 0) ? data.color : 4294967296 + data.color;
@@ -47,11 +55,46 @@ function handleMessage(data) {
                 );
             }
             break;
+        case 'removeWall':
+            if (walls[data.wallId] != null)
+                walls[data.wallId].remove();
+            break;
         case 'ringBell':
             if(players.hasOwnProperty(data.playerId)) {
                 players[data.playerId].setIcon(bikeBellIcon);
                 setTimeout(function() { players[data.playerId].setIcon(bikeIcon); }, 3000);
             }
+            break;
+        case 'startGame':
+            border = new google.maps.Circle({
+                strokeColor: '#FF0000',
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor:'#000000',
+                fillOpacity:0,
+                map: map,
+                center: {lat: data.startLocation.latitude, lng: data.startLocation.longitude},
+                radius: data.borderSize
+            });
+            break;
+        case 'winner':
+            toastr.success("Game Has ended");
+            break;
+        case 'startEvent':
+            switch (data.eventType) {
+                case 'show_off_event':
+                    toastr.success("Show off event started");
+                    break;
+                case 'king_of_hill':
+                    toastr.success("King of hill event started");
+                    break;
+                case 'bell_event':
+                    toastr.success("Bell event started");
+                    break;
+            }
+            break;
+        case 'scoreMessage':
+            toastr.success("Player with id: "+data.playerId+" has won " + data.score + " points in the last event");
             break;
     }
 }
