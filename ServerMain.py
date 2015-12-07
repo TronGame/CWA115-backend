@@ -49,7 +49,8 @@ def createDatabase():
             userId1 integer,
             userId2 integer,
             pending integer default 1,
-            commonPlays integer default 0
+            commonPlays integer default 0,
+            unique(userId1, userId2)
         )
         """
     )
@@ -59,7 +60,8 @@ def createDatabase():
             id integer primary key autoincrement,
             inviterId integer,
             inviteeId integer,
-            gameId integer
+            gameId integer,
+            unique(inviteeId, gameId)
         )
         """
     )
