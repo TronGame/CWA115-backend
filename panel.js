@@ -1,5 +1,5 @@
 var socket;
-var startTime;
+var lastTime;
 var msgLog = []; 
 var gameId = null;
 
@@ -8,6 +8,9 @@ var walls = {};
 
 var bikeIcon = {url : 'icons/bike.png', scaledSize : {width : 48, height : 48}};
 var bikeBellIcon = {url : 'icons/bikeWithBell.png', scaledSize : {width : 48, height : 48}};
+
+var currentGameData = [];
+var paused = false;
 
 function handleMessage(data) {
     switch(data['type']) {
@@ -97,13 +100,15 @@ function setGame() {
     // Start listening
     socket = io('http://daddi.cs.kuleuven.be', {path : '/peno3/socket.io'});
 		
-    startTime = Date.now();
+    lastTime = Date.now();
 
     socket.emit('register', {groupid : 'testA1', sessionid : gameId});
 
     socket.on('broadcastReceived', function(data) {
         console.log(data);
-        msgLog.push({data : data, time : Date.now() - startTime});
+        var currentTime = Date.now();
+        msgLog.push({data : data, time : currentTime - lastTime});
+        lastTime = currentTime;
         handleMessage(data);
     });
 
@@ -126,11 +131,21 @@ function loadGame(path) {
 
 function emulateGame(gameData) {
     var speedUp = window.prompt('Speed up?', '1.0');
-    for(var i = 0; i < gameData.length; ++i) {
-        setTimeout(function(data) {
-            handleMessage(data);
-        }, gameData[i].time / speedUp, gameData[i].data);
-    }
+    currentGame = {data : gameData, i : 0, speedUp : speedUp};
+    setTimeout(function(data) {
+        sendNext();
+    }, currentGame.data[currentGame.i].time / currentGame.speedUp);
+}
+
+function sendNext() {
+    if(paused)
+        return;
+
+    handleMessage(currentGame.data[currentGame.i].data);
+    setTimeout(function(data) {
+        ++currentGame.i;
+        sendNext();
+    }, currentGame.data[currentGame.i].time / currentGame.speedUp);
 }
 
 function clearGame() {
@@ -146,6 +161,17 @@ function clearGame() {
     players = {};
     walls = {};
     msgLog = [];
-    startTime = Date.now();
+    lastTime = Date.now();
     toastr.success('Map cleared.');
+}
+
+function pauseReplay() {
+    if(!paused) {
+        paused = true;
+        document.getElementById("pauseButton").innerHTML = "Resume";
+    } else {
+        paused = false;
+        sendNext(currentGame);
+        document.getElementById("pauseButton").innerHTML = "Pause";
+    }
 }
