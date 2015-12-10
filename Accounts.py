@@ -65,7 +65,7 @@ class ShowAccount(Resource):
         else:
             id = request.args["id"][0]
             if authorized:
-                newResult = self.__cp.runQuery("select userId1, userId2, pending, commonPlays from friends where userId1=? or userId2=? order by id asc", (id, id))
+                newResult = self.__cp.runQuery("select userId1, userId2, pending, commonPlays from friends where userId1=? or userId2=? order by id desc", (id, id))
                 newResult.addCallback(self.friendsSelected, request, result[0])
             else:
                 request.write(json.dumps({"id" : result[0][0],

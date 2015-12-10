@@ -102,7 +102,7 @@ root.putChild("deleteInvite", Games.DeleteInvite(cp))
 root.putChild("showInvites", Games.ShowInvites(cp))
 
 # For debugging purposes only:
-root.putChild("showAll", Accounts.ShowAll(cp))
+#root.putChild("showAll", Accounts.ShowAll(cp))
 #root.putChild("clearAll", Accounts.ShowAll(cp))
 
 root.putChild("panel", File("panel.html"))
