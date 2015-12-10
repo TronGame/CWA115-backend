@@ -129,12 +129,12 @@ class ListGames(Resource):
             ownerId = game[2]
             interaction.execute("select name from accounts where id = ?", (ownerId, ))
             ownerName = interaction.fetchone()
-            if ownerName is not None:
-                result.append(game + (ownerName[0], ))
-            else:
-                result.append(game + ("Unknown", ))
             interaction.execute("select count() from accounts where currentGame = ?", (game[0], ))
-            result.append(interaction.fetchone()[0])
+            playerCount = interaction.fetchone()[0]
+            if ownerName is not None:
+                result.append(game + (ownerName[0], playerCount))
+            else:
+                result.append(game + ("Unknown", playerCount))
         return result
 
     def gameSelected(self, result, request):
