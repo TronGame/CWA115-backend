@@ -107,6 +107,11 @@ function saveGame() {
 function setGame() {
     gameId = window.prompt('Game id?', '1');
 
+    if(socket) {
+        clearGame();
+        socket.disconnect();
+    }
+
     // Start listening
     socket = io('http://daddi.cs.kuleuven.be', {path : '/peno3/socket.io'});
 		
