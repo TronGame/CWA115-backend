@@ -133,6 +133,8 @@ class ListGames(Resource):
                 result.append(game + (ownerName[0], ))
             else:
                 result.append(game + ("Unknown", ))
+            interaction.execute("select count() from accounts where currentGame = ?", (game[0], ))
+            result.append(iteraction.fetchone()[0])
         return result
 
     def gameSelected(self, result, request):
@@ -144,7 +146,8 @@ class ListGames(Resource):
             "canBreakWall" : int(row[4]),
             "timeLimit"    : int(row[5]),
             "maxDist"      : float(row[6]),
-            "ownerName"    : row[7]
+            "ownerName"    : row[7],
+            "playerCount"  : int(row[8]),
         } for row in result]))
         request.finish()
 
