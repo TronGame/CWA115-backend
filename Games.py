@@ -134,7 +134,7 @@ class ListGames(Resource):
             else:
                 result.append(game + ("Unknown", ))
             interaction.execute("select count() from accounts where currentGame = ?", (game[0], ))
-            result.append(iteraction.fetchone()[0])
+            result.append(interaction.fetchone()[0])
         return result
 
     def gameSelected(self, result, request):
@@ -147,7 +147,7 @@ class ListGames(Resource):
             "timeLimit"    : int(row[5]),
             "maxDist"      : float(row[6]),
             "ownerName"    : row[7],
-            "playerCount"  : int(row[8]),
+            "playerCount"  : int(row[8])
         } for row in result]))
         request.finish()
 
