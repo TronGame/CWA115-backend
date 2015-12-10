@@ -33,7 +33,9 @@ function handleMessage(data) {
             if (data.playerKillerId == "")
                 toastr.error("Player "+data.playerName+", has died.");
             else {
-                toastr.error("Player "+data.playerName+ ", was killed by "+data.playerKillerName);
+                toastr.error(
+                    "Player "+data.playerName+ ", was killed by "+data.playerKillerName + "."
+                );
             }
             break;
         case 'createWall':
@@ -76,25 +78,29 @@ function handleMessage(data) {
                 center: {lat: data.startLocation.latitude, lng: data.startLocation.longitude},
                 radius: data.borderSize
             });
+            toastr.success("The game has started.");
             break;
         case 'winner':
-            toastr.success("Game Has ended");
+            toastr.success("The game has ended.");
             break;
         case 'startEvent':
             switch (data.eventType) {
                 case 'show_off_event':
-                    toastr.success("Show off event started");
+                    toastr.success("Show off event started.");
                     break;
                 case 'king_of_hill':
-                    toastr.success("King of hill event started");
+                    toastr.success("King of hill event started.");
                     break;
                 case 'bell_event':
-                    toastr.success("Bell event started");
+                    toastr.success("Bell event started.");
                     break;
             }
             break;
         case 'scoreMessage':
-            toastr.success("Player with id: "+data.playerId+" has won " + data.score + " points in the last event");
+            toastr.success(
+                "Player with id: "+data.playerId+" has won "
+                 + data.score + " points in the last event."
+            );
             break;
     }
 }
