@@ -97,6 +97,9 @@ function handleMessage(data) {
                 case 'bell_event':
                     toastr.success("Bell event started.");
                     break;
+                case 'turn_event':
+                    toastr.success('Turn event started.');
+                    break;
             }
             break;
         case 'scoreMessage':
