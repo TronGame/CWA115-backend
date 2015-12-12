@@ -42,10 +42,14 @@ function handleMessage(data) {
             // TODO: fix this on the Java side (send a hex string instead of a signed integer)
             var colorValue = (data.color > 0) ? data.color : 4294967296 + data.color;
             if (walls[data.wallId] != null) {
-                walls[data.wallId].remove();
+                walls[data.wallId].setMap(null);
+            }
+            newPath = [];
+            for (i=0; i<data.points.points.length; i++) {
+                newPath.push(new google.maps.LatLng(data.points.points[i].latitude, data.points.points[i].longitude));
             }
             walls[data.wallId] = new google.maps.Polyline({
-                path : [],
+                path : newPath,
                 strokeColor : '#' + colorValue.toString(16),
                 strokeOpacity : 1.0,
                 strokeWeight : 15,
@@ -61,8 +65,10 @@ function handleMessage(data) {
             }
             break;
         case 'removeWall':
-            if (walls[data.wallId] != null)
-                walls[data.wallId].remove();
+            if (walls[data.wallId] != null) {
+                walls[data.wallId].setMap(null);
+                walls[data.wallId] = null;
+            }
             break;
         case 'ringBell':
             if(players.hasOwnProperty(data.playerId)) {
