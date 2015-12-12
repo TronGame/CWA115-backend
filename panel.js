@@ -41,6 +41,9 @@ function handleMessage(data) {
         case 'createWall':
             // TODO: fix this on the Java side (send a hex string instead of a signed integer)
             var colorValue = (data.color > 0) ? data.color : 4294967296 + data.color;
+            if (walls[data.wallId] != null) {
+                walls[data.wallId].remove();
+            }
             walls[data.wallId] = new google.maps.Polyline({
                 path : [],
                 strokeColor : '#' + colorValue.toString(16),
@@ -115,7 +118,7 @@ function setGame() {
 
     if(socket) {
         clearGame();
-        socket.disconnect();
+        socket.off();
     }
 
     // Start listening
