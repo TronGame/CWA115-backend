@@ -44,8 +44,12 @@ function handleMessage(data) {
             if (walls[data.wallId] != null) {
                 walls[data.wallId].setMap(null);
             }
+            newPath = [];
+            for (i=0; i<data.points.points.length; i++) {
+                newPath.push(new google.maps.LatLng(data.points.points[i].latitude, data.points.points[i].longitude));
+            }
             walls[data.wallId] = new google.maps.Polyline({
-                path : [],
+                path : newPath,
                 strokeColor : '#' + colorValue.toString(16),
                 strokeOpacity : 1.0,
                 strokeWeight : 15,
