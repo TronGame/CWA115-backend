@@ -105,6 +105,7 @@ root.putChild("showInvites", Games.ShowInvites(cp))
 #root.putChild("showAll", Accounts.ShowAll(cp))
 #root.putChild("clearAll", Accounts.ShowAll(cp))
 
+root.putChild("privacy", File("privacy-policy.html"))
 root.putChild("panel", File("panel.html"))
 root.putChild("panel.js", File("panel.js"))
 icons = Resource()
