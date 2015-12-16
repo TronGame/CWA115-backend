@@ -28,15 +28,15 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
 <script src="panel.js"></script>
 </head>
-<body>
+<body onLoad="onPageLoad()">
 
 <div id="topMenu">
-    <button onclick="setGame();">Set Game</button>
-    <button onclick="saveGame();">Save</button>
-    <button onclick="showFileDialog();">Load</button>
-    <input id="loadDialog" type="file" acccept="text/plain" style="display:none" onchange="loadGame(this);">
-    <button onclick="clearGame();">Clear</button>
-    <button id="pauseButton" onclick="pauseReplay();">Pause</button>
+    <button onClick="setGame();">Set Game</button>
+    <button onClick="saveGame();">Save</button>
+    <button onClick="showFileDialog();">Load</button>
+    <input id="loadDialog" type="file" acccept="text/plain" style="display:none" onChange="loadGame(this);">
+    <button onClick="clearGame();">Clear</button>
+    <button id="pauseButton" onClick="pauseReplay();">Pause</button>
 </div>
 <div id="map"></div>
 <script>

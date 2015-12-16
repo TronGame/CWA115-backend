@@ -11,6 +11,7 @@ var bikeIcon = {url : 'icons/bike.png', scaledSize : {width : 48, height : 48}};
 var bikeBellIcon = {url : 'icons/bikeWithBell.png', scaledSize : {width : 48, height : 48}};
 
 var currentGameData = [];
+var urlParams;
 var paused = false;
 
 function handleMessage(data) {
@@ -171,8 +172,15 @@ function emulateGame(gameData) {
 }
 
 function sendNext() {
-    if(paused || currentGame.i >= currentGame.data.length)
-        return;
+    if(currentGame.i >= currentGame.data.length){
+		if(urlParams.autoLoop=="1"){
+			clearGame();
+			currentGame.i = 0;
+		}else
+        	return;
+	}
+	if(paused)
+		return;
 
     handleMessage(currentGame.data[currentGame.i].data);
     setTimeout(function(data) {
@@ -207,4 +215,14 @@ function pauseReplay() {
         sendNext(currentGame);
         document.getElementById("pauseButton").innerHTML = "Pause";
     }
+}
+
+function onPageLoad(){
+	var url = document.URL;
+	var urlParamsArr = url.split("?")[1].split("&");
+	urlParams = new Object();
+	for(var i = 0;i<urlParamsArr.length;i++){
+		var param = urlParamsArr[i].split("=");
+		urlParams[param[0]] = param[1];
+	}
 }
